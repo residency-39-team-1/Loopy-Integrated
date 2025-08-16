@@ -1,3 +1,24 @@
+# Node / RN
+**/node_modules/
+**/.expo/
+**/.expo-shared/
+**/.gradle/
+**/.idea/
+**/build/
+**/android/app/build/
+**/ios/Pods/
+**/ios/build/
 
-# Firebase Admin key
-serviceAccount.json
+# Env & secrets
+*.keystore
+*.p8
+*.pem
+*.jks
+*.keystore
+*.env
+*.env.*
+*firebase-adminsdk*.json
+serviceAccount*.json
+
+# Misc
+.DS_Store
