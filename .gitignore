@@ -25,3 +25,5 @@ serviceAccount*.json
 
 # secrets
 *.json
+
+backend/accounts.json
