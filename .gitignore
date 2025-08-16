@@ -22,3 +22,6 @@ serviceAccount*.json
 
 # Misc
 .DS_Store
+
+# secrets
+*.json
