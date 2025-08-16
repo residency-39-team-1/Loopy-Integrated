@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "loopy-productivity-app",
+  "private_key_id": "b52971f23521e43cfde881aea055b60eb4f1c352",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQCz2Uu7PEIAHJBT\n80Suk669RKBwBrAuL2hYjawc+PWVeYbNBFi+F+k93MOnUKM36Pv/6l46FnJW3A35\nO3/CTaBQu2S9RYGRC1vWcIDxY4V6ysh5nml5Zv2T2NuOpBRFHdfqaK5mNo1BIBY4\nzlw9Lg1brKc6RTK5gF0WXVKK5VvOmnlH1yis/MPxiUXs0EmJyInToeVmhKLojOYU\n3w8QRrUlvx6F+6XVOMjgKisPTyQ6WMTRkZbunscV5byzspKe7W29dr721McvMwGq\njc+gaf+Y/R01zgk+RskzEdyQkXbVtdVJCe6BgHnc0tLBD+Ny6GeSXG/2+F1eHSNx\ncHUO4AhXAgMBAAECggEAMnJ+QqvZW4ynk1TGbC2ysxZf5myJ2Lqli0laANp4kJAB\nFtrkRZYRb6/QFcuRrOomXZeRDLwlIGYjaUieQpNhp6OY01p+yH+mKBVwpcUjuNjO\nuQaNUWdpM6J9m5o8sVJ4sSDh4nvkzWLBuPdxehvD1XYthjPI0a3G7rIIqDtDsES8\no/ITEbxJFlanXaECH/bZ2pDwWCvdLIFSADKGwcgX05qPM5q53qy2y9mPxxZkx53e\n4gEQpA1dYipu12EGr/k4vRzZ6p23Y2JsUxbW4IDauRQyzbc46PRr6IUUxWqQB5GP\nrlV7oQQ/nd/9bZXE3bEmtkXnnIAYY3e/+MQSMwWvwQKBgQD36nx10buAZzJ7pEGM\nB9h8cecsk2w3MEFD3bS9WuxuSlp9ENLABNVm2aPeydBPxwogx3hS/9qwhKbvOiAC\nxnZg3uB8btinApydJZyhpXgC+DrqgMnbv2MxQyicY1souzwdIu0I+QaGbV6n0WIW\nYVweh14FJAQwdjQ/OPf5MuGwYQKBgQC5tpwCzslLaexRGKIg6T2NcEjrscSN3HCy\nh4nPTUlSCzIDQc1Qd4v02jim+c5D3xk97Cihbfqk0CpGl1WCgSou6eaHRuLn4l1w\nkm8csYSGqZpGLT0DurlbrjkHNnRMCmIAAg5xKUfSn8vMm6lBQooCgJbr6V1b/tgB\n1XTydwvTtwKBgBFQZgrQb/jivCrYaN9/uMXQKqX5Uch07UnxFOtYi0SUmsc7Qoy4\nibLaJlCr5Yl8zB9H7wZU6hAD46i3dX7cH25agnEOSME5NHjhJJRBeyUx8uNnxTE8\np4/MMeziH36zvNoIE2faBHOk9cRgoioP+KAFMjLHticwSivULbVQsWRhAoGAFyg6\nE++NEiZHHWWg8dGjpztVHG6yP645L0nPWVYdymky900BOQNvJD0By3Bi0/vBvgLw\nnhCErIB4hQzh0MAibm8kG8IvERMc66iWylEoYVJMtmt1rD1gV5pF6ixUHBc/WRjo\njBvFpPHgC8dtN4IAi4dVSl1zEsGYVcI0LvfBNckCgYEAxxpQxmftLIAZkXi0dCnQ\ntBYC+xXer+PBxmSw08e88iJtC7mp3QqEzKPGNERV8tK2Msj7mdkf7zZ8BBpMSZhG\nx2+8bXXIBWEiKTRuzDphhbz4/QMVzufqFWa/b59SBUrH6J9+25BPU3pjlq5Ux3Ct\nGylbc9/gtCHQl82/c1/CmjE=\n-----END PRIVATE KEY-----\n",
+  "client_email": "firebase-adminsdk-fbsvc@loopy-productivity-app.iam.gserviceaccount.com",
+  "client_id": "114804882697321398399",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-fbsvc%40loopy-productivity-app.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}
