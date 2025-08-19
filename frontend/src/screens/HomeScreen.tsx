@@ -1,16 +1,81 @@
-// src/screens/HomeScreen.tsx
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
   TouchableOpacity,
   StyleSheet,
   SafeAreaView,
+  FlatList,
+  ActivityIndicator,
 } from 'react-native';
 import { useAuth } from '../contexts/AuthContext';
+import firestore from '@react-native-firebase/firestore';
+import LottieView from 'lottie-react-native';
+
+// ✅ Define Task type
+type Task = {
+  id: string;
+  title: string;
+  // Add other fields as needed
+};
 
 export default function HomeScreen() {
   const { user, signOut } = useAuth();
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!user) return;
+
+    const unsubscribe = firestore()
+      .collection('tasks')
+      .where('userId', '==', user.uid)
+      .onSnapshot(
+        snapshot => {
+          const updatedTasks: Task[] = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...(doc.data() as Omit<Task, 'id'>),
+          }));
+          setTasks(updatedTasks);
+          setLoading(false);
+          setError(null);
+        },
+        err => {
+          console.error('Snapshot listener failed:', err);
+          setError('Real-time updates unavailable. Showing static data.');
+          fallbackFetch(user.uid);
+        }
+      );
+
+    return () => unsubscribe(); // ✅ Cleanup on unmount
+  }, [user]);
+
+  const fallbackFetch = async (userId: string) => {
+    try {
+      const snapshot = await firestore()
+        .collection('tasks')
+        .where('userId', '==', userId)
+        .get();
+
+      const staticTasks: Task[] = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...(doc.data() as Omit<Task, 'id'>),
+      }));
+      setTasks(staticTasks);
+    } catch (err) {
+      console.error('Fallback fetch failed:', err);
+      setError('Unable to load tasks.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const renderTask = ({ item }: { item: Task }) => (
+    <View style={styles.taskItem}>
+      <Text style={styles.taskText}>{item.title}</Text>
+    </View>
+  );
 
   return (
     <SafeAreaView style={styles.container}>
@@ -23,11 +88,28 @@ export default function HomeScreen() {
 
       <View style={styles.content}>
         <Text style={styles.sectionTitle}>Your Tasks</Text>
-        <View style={styles.placeholder}>
-          <Text style={styles.placeholderText}>
-            Task management features coming soon...
-          </Text>
-        </View>
+
+        {loading ? (
+          <ActivityIndicator size="large" color="#999" />
+        ) : error ? (
+          <Text style={styles.errorText}>{error}</Text>
+        ) : tasks.length === 0 ? (
+          <View style={styles.placeholder}>
+            <LottieView
+              source={require('../../assets/empty-tasks.json')}
+              autoPlay
+              loop
+              style={{ width: 200, height: 200 }}
+            />
+            <Text style={styles.placeholderText}>No tasks yet. Add one!</Text>
+          </View>
+        ) : (
+          <FlatList
+            data={tasks}
+            keyExtractor={item => item.id}
+            renderItem={renderTask}
+          />
+        )}
       </View>
 
       <TouchableOpacity style={styles.signOutButton} onPress={signOut}>
@@ -69,15 +151,34 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   placeholder: {
-    backgroundColor: '#fff',
-    padding: 40,
-    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
+    padding: 20,
   },
   placeholderText: {
     color: '#999',
     fontSize: 14,
+    marginTop: 12,
+  },
+  errorText: {
+    color: '#ff5252',
+    fontSize: 14,
+    textAlign: 'center',
+    marginBottom: 12,
+  },
+  taskItem: {
+    backgroundColor: '#fff',
+    padding: 16,
+    borderRadius: 8,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  taskText: {
+    fontSize: 16,
+    color: '#333',
   },
   signOutButton: {
     margin: 20,
