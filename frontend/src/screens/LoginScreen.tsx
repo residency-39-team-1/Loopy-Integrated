@@ -1,5 +1,7 @@
-// src/screens/LoginScreen.tsx
-import React from 'react';
+// Git test: Tevin was here
+
+
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -10,10 +12,13 @@ import {
   SafeAreaView,
 } from 'react-native';
 import { useAuth } from '../contexts/AuthContext';
+import firestore from '@react-native-firebase/firestore';
+import LottieView from 'lottie-react-native';
 
 export default function LoginScreen() {
-  const { signInWithGoogle, signInAsGuest, isLoading, error } = useAuth();
-  const [localLoading, setLocalLoading] = React.useState(false);
+  const { signInWithGoogle, signInAsGuest, isLoading, error, user } = useAuth();
+  const [localLoading, setLocalLoading] = useState(false);
+  const [userMetadata, setUserMetadata] = useState<any>(null);
 
   const handleGoogleSignIn = async () => {
     console.log('Login button pressed - starting Google sign-in');
@@ -43,10 +48,37 @@ export default function LoginScreen() {
     }
   };
 
+  // ✅ Firestore snapshot for user metadata (optional)
+  useEffect(() => {
+    if (!user || !user.uid) return;
+
+    const unsubscribe = firestore()
+      .collection('users')
+      .doc(user.uid)
+      .onSnapshot(
+        doc => {
+          if (doc.exists) {
+            setUserMetadata(doc.data());
+            console.log('User metadata:', doc.data());
+          }
+        },
+        err => {
+          console.error('Failed to fetch user metadata:', err);
+        }
+      );
+
+    return () => unsubscribe();
+  }, [user]);
+
   if (isLoading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#4285F4" />
+        <LottieView
+          source={require('../../assets/login-loader.json')}
+          autoPlay
+          loop
+          style={{ width: 200, height: 200 }}
+        />
         <Text style={styles.loadingText}>Loading...</Text>
       </View>
     );
