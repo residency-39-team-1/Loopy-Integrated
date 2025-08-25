@@ -353,3 +353,7 @@ def restore_archive_http(archive_id: str):
     except Exception as e:
         current_app.logger.exception(e)
         return _err("Internal error", 500)
+
+# --- registration hook expected by app.py ---
+def register_archived_routes(app):
+    app.register_blueprint(bp)

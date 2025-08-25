@@ -257,3 +257,7 @@ def list_tasks_http():
     except Exception as e:
         current_app.logger.exception(e)
         return _err("Internal error", 500)
+
+# --- registration hook expected by app.py ---
+def register_task_routes(app):
+    app.register_blueprint(bp)
