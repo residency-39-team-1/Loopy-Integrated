@@ -183,3 +183,7 @@ def admin_list_users():
     })
 
     return jsonify(results), 200
+
+# --- registration hook expected by app.py ---
+def register_user_routes(app):
+    app.register_blueprint(bp)

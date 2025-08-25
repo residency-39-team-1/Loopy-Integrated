@@ -389,3 +389,7 @@ def admin_summary():
     })
 
     return jsonify({"total": total, "count": count, "byUser": by_user}), 200
+
+# --- registration hook expected by app.py ---
+def register_dopamine_logs_routes(app):
+    app.register_blueprint(bp)
