@@ -1,5 +1,6 @@
-// Git test: Tevin was here
+// frontend/src/screens/LoginScreen.tsx
 
+// Git test: Tevin was here
 
 import React, { useEffect, useState } from 'react';
 import {
@@ -13,7 +14,6 @@ import {
 } from 'react-native';
 import { useAuth } from '../contexts/AuthContext';
 import firestore from '@react-native-firebase/firestore';
-import LottieView from 'lottie-react-native';
 
 export default function LoginScreen() {
   const { signInWithGoogle, signInAsGuest, isLoading, error, user } = useAuth();
@@ -21,11 +21,9 @@ export default function LoginScreen() {
   const [userMetadata, setUserMetadata] = useState<any>(null);
 
   const handleGoogleSignIn = async () => {
-    console.log('Login button pressed - starting Google sign-in');
     setLocalLoading(true);
     try {
       await signInWithGoogle();
-      console.log('Google sign-in completed');
     } catch (err) {
       console.error('Error in handleGoogleSignIn:', err);
       Alert.alert('Sign In Failed', 'Unable to sign in with Google. Please try again.');
@@ -35,11 +33,9 @@ export default function LoginScreen() {
   };
 
   const handleGuestSignIn = async () => {
-    console.log('Guest sign-in button pressed');
     setLocalLoading(true);
     try {
       await signInAsGuest();
-      console.log('Guest sign-in completed');
     } catch (err) {
       console.error('Error in handleGuestSignIn:', err);
       Alert.alert('Sign In Failed', 'Unable to sign in as guest. Please try again.');
@@ -48,37 +44,23 @@ export default function LoginScreen() {
     }
   };
 
-  // ✅ Firestore snapshot for user metadata (optional)
+  // Optional: user metadata snapshot
   useEffect(() => {
-    if (!user || !user.uid) return;
-
+    if (!user?.uid) return;
     const unsubscribe = firestore()
       .collection('users')
       .doc(user.uid)
       .onSnapshot(
-        doc => {
-          if (doc.exists) {
-            setUserMetadata(doc.data());
-            console.log('User metadata:', doc.data());
-          }
-        },
-        err => {
-          console.error('Failed to fetch user metadata:', err);
-        }
+        doc => doc.exists && setUserMetadata(doc.data()),
+        err => console.error('Failed to fetch user metadata:', err)
       );
-
     return () => unsubscribe();
   }, [user]);
 
   if (isLoading) {
     return (
       <View style={styles.loadingContainer}>
-        <LottieView
-          source={require('../../assets/login-loader.json')}
-          autoPlay
-          loop
-          style={{ width: 200, height: 200 }}
-        />
+        <ActivityIndicator size="large" />
         <Text style={styles.loadingText}>Loading...</Text>
       </View>
     );
@@ -94,7 +76,7 @@ export default function LoginScreen() {
 
         <View style={styles.buttonContainer}>
           <TouchableOpacity
-            style={[styles.button, styles.googleButton, localLoading && styles.disabledButton]}
+            style={[styles.button, styles.googleButton, (localLoading) && styles.disabledButton]}
             onPress={handleGoogleSignIn}
             disabled={localLoading}
           >
@@ -106,7 +88,7 @@ export default function LoginScreen() {
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.button, styles.guestButton, localLoading && styles.disabledButton]}
+            style={[styles.button, styles.guestButton, (localLoading) && styles.disabledButton]}
             onPress={handleGuestSignIn}
             disabled={localLoading}
           >
@@ -118,11 +100,11 @@ export default function LoginScreen() {
           </TouchableOpacity>
         </View>
 
-        {error && (
+        {error ? (
           <View style={styles.errorContainer}>
             <Text style={styles.errorText}>{error}</Text>
           </View>
-        )}
+        ) : null}
 
         <Text style={styles.disclaimer}>
           By signing in, you agree to our Terms of Service and Privacy Policy
@@ -133,97 +115,25 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f5f5f5',
-  },
-  content: {
-    flex: 1,
-    justifyContent: 'center',
-    paddingHorizontal: 20,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#f5f5f5',
-  },
-  loadingText: {
-    marginTop: 10,
-    fontSize: 16,
-    color: '#666',
-  },
-  header: {
-    alignItems: 'center',
-    marginBottom: 60,
-  },
-  title: {
-    fontSize: 48,
-    fontWeight: 'bold',
-    color: '#333',
-    letterSpacing: 2,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#666',
-    marginTop: 10,
-    textAlign: 'center',
-  },
-  buttonContainer: {
-    gap: 16,
-  },
+  container: { flex: 1, backgroundColor: '#f5f5f5' },
+  content: { flex: 1, justifyContent: 'center', paddingHorizontal: 20 },
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#f5f5f5' },
+  loadingText: { marginTop: 10, fontSize: 16, color: '#666' },
+  header: { alignItems: 'center', marginBottom: 60 },
+  title: { fontSize: 48, fontWeight: 'bold', color: '#333', letterSpacing: 2 },
+  subtitle: { fontSize: 16, color: '#666', marginTop: 10, textAlign: 'center' },
+  buttonContainer: { gap: 16 },
   button: {
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-    borderRadius: 8,
-    alignItems: 'center',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    minHeight: 56,
-    justifyContent: 'center',
+    paddingVertical: 16, paddingHorizontal: 24, borderRadius: 8, alignItems: 'center',
+    elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1, shadowRadius: 4, minHeight: 56, justifyContent: 'center',
   },
-  googleButton: {
-    backgroundColor: '#4285F4',
-  },
-  googleButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  guestButton: {
-    backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: '#ddd',
-  },
-  guestButtonText: {
-    color: '#333',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  disabledButton: {
-    opacity: 0.6,
-  },
-  errorContainer: {
-    marginTop: 20,
-    padding: 12,
-    backgroundColor: '#ffebee',
-    borderRadius: 4,
-  },
-  errorText: {
-    color: '#c62828',
-    fontSize: 14,
-    textAlign: 'center',
-  },
-  disclaimer: {
-    position: 'absolute',
-    bottom: 40,
-    left: 20,
-    right: 20,
-    textAlign: 'center',
-    fontSize: 12,
-    color: '#999',
-  },
+  googleButton: { backgroundColor: '#4285F4' },
+  googleButtonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  guestButton: { backgroundColor: '#fff', borderWidth: 1, borderColor: '#ddd' },
+  guestButtonText: { color: '#333', fontSize: 16, fontWeight: '600' },
+  disabledButton: { opacity: 0.6 },
+  errorContainer: { marginTop: 20, padding: 12, backgroundColor: '#ffebee', borderRadius: 4 },
+  errorText: { color: '#c62828', fontSize: 14, textAlign: 'center' },
+  disclaimer: { position: 'absolute', bottom: 40, left: 20, right: 20, textAlign: 'center', fontSize: 12, color: '#999' },
 });

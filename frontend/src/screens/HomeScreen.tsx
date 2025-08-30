@@ -1,8 +1,4 @@
-<<<<<<< HEAD
-import React, { useEffect, useState } from 'react';
-=======
 import React, { useCallback, useEffect, useState } from 'react';
->>>>>>> feature/FitzDanos
 import {
   View,
   Text,
@@ -11,8 +7,6 @@ import {
   SafeAreaView,
   FlatList,
   ActivityIndicator,
-<<<<<<< HEAD
-=======
   RefreshControl,
   Alert,
   Modal,
@@ -21,21 +15,10 @@ import {
   Platform,
   TouchableWithoutFeedback,
   Keyboard,
->>>>>>> feature/FitzDanos
 } from 'react-native';
 import auth from '@react-native-firebase/auth';
 import { useAuth } from '../contexts/AuthContext';
-<<<<<<< HEAD
-import firestore from '@react-native-firebase/firestore';
-import LottieView from 'lottie-react-native';
 
-// ✅ Define Task type
-type Task = {
-  id: string;
-  title: string;
-  // Add other fields as needed
-};
-=======
 import type { Task } from '../types/task';
 import TaskServiceHttp from '../services/TaskServiceHttp';
 import LoadingOverlay from '../components/LoadingOverlay';
@@ -44,102 +27,33 @@ import Celebration from '../components/Celebration';
 const TaskService = TaskServiceHttp;
 const STATE_ORDER: Task['state'][] = ['Exploring', 'Planning', 'Doing', 'Done'];
 const API_BASE = process.env.EXPO_PUBLIC_API_BASE;
->>>>>>> feature/FitzDanos
 
 export default function HomeScreen() {
   const { user, signOut } = useAuth();
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!user) return;
-
-    const unsubscribe = firestore()
-      .collection('tasks')
-      .where('userId', '==', user.uid)
-      .onSnapshot(
-        snapshot => {
-          const updatedTasks: Task[] = snapshot.docs.map(doc => ({
-            id: doc.id,
-            ...(doc.data() as Omit<Task, 'id'>),
-          }));
-          setTasks(updatedTasks);
-          setLoading(false);
-          setError(null);
-        },
-        err => {
-          console.error('Snapshot listener failed:', err);
-          setError('Real-time updates unavailable. Showing static data.');
-          fallbackFetch(user.uid);
-        }
-      );
-
-    return () => unsubscribe(); // ✅ Cleanup on unmount
-  }, [user]);
-
-  const fallbackFetch = async (userId: string) => {
-    try {
-      const snapshot = await firestore()
-        .collection('tasks')
-        .where('userId', '==', userId)
-        .get();
-
-      const staticTasks: Task[] = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...(doc.data() as Omit<Task, 'id'>),
-      }));
-      setTasks(staticTasks);
-    } catch (err) {
-      console.error('Fallback fetch failed:', err);
-      setError('Unable to load tasks.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const renderTask = ({ item }: { item: Task }) => (
-    <View style={styles.taskItem}>
-      <Text style={styles.taskText}>{item.title}</Text>
-    </View>
-  );
-
+  // state
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Add modal
+  // add modal
   const [addVisible, setAddVisible] = useState(false);
   const [newTitle, setNewTitle] = useState('');
   const [newNotes, setNewNotes] = useState('');
   const [saving, setSaving] = useState(false);
 
-  // Edit modal
+  // edit modal
   const [editVisible, setEditVisible] = useState(false);
   const [editTitle, setEditTitle] = useState('');
   const [editNotes, setEditNotes] = useState('');
   const [editing, setEditing] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
 
-  // Celebration
+  // celebration
   const [celebrate, setCelebrate] = useState(false);
 
-  const greeting = user?.isAnonymous
-    ? 'Guest User'
-    : user?.displayName || user?.email || 'User';
-
-  // Optional debug
-  useEffect(() => {
-    (async () => {
-      const u = auth().currentUser;
-      if (!u) return;
-      const tok = await u.getIdToken();
-      console.log('🌐 API_BASE:', API_BASE);
-      console.log('🔑 ID TOKEN (first 40):', tok.slice(0, 40), '…');
-    })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  const greeting = user?.isAnonymous ? 'Guest User' : user?.displayName || user?.email || 'User';
 
   const load = useCallback(async () => {
     if (!user) return;
@@ -155,7 +69,9 @@ export default function HomeScreen() {
     }
   }, [user]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    if (user) load();
+  }, [user, load]);
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -167,7 +83,7 @@ export default function HomeScreen() {
     return STATE_ORDER[(i + 1) % STATE_ORDER.length];
   };
 
-  // -------- Create --------
+  // create task
   const openAddModal = () => {
     setNewTitle('');
     setNewNotes('');
@@ -176,10 +92,7 @@ export default function HomeScreen() {
 
   const submitNewTask = async () => {
     const title = newTitle.trim();
-    if (!title) {
-      Alert.alert('Title required', 'Please enter a task title.');
-      return;
-    }
+    if (!title) return Alert.alert('Title required', 'Please enter a task title.');
     try {
       setSaving(true);
       const t = await TaskService.create(user?.uid || '', {
@@ -189,7 +102,7 @@ export default function HomeScreen() {
       });
       setTasks(prev => [t, ...prev]);
       setAddVisible(false);
-      setCelebrate(true); // 🎉
+      setCelebrate(true);
     } catch (e: any) {
       Alert.alert('Create failed', e?.message || 'Unknown error');
     } finally {
@@ -197,7 +110,7 @@ export default function HomeScreen() {
     }
   };
 
-  // -------- Update state --------
+  // update task state
   const toggleTaskState = async (t: Task) => {
     const to = nextState(t.state);
     setTasks(prev => prev.map(x => (x.id === t.id ? { ...x, state: to } : x)));
@@ -210,7 +123,7 @@ export default function HomeScreen() {
     }
   };
 
-  // -------- Edit --------
+  // edit task
   const openEditModal = (t: Task) => {
     setEditingTask(t);
     setEditTitle(t.title);
@@ -221,16 +134,12 @@ export default function HomeScreen() {
   const submitEdit = async () => {
     if (!editingTask) return;
     const title = editTitle.trim();
-    if (!title) {
-      Alert.alert('Title required', 'Please enter a task title.');
-      return;
-    }
+    if (!title) return Alert.alert('Title required', 'Please enter a task title.');
     try {
       setEditing(true);
-      // optimistic
-      setTasks(prev => prev.map(x =>
-        x.id === editingTask.id ? { ...x, title, notes: editNotes.trim() || undefined } : x
-      ));
+      setTasks(prev =>
+        prev.map(x => (x.id === editingTask.id ? { ...x, title, notes: editNotes.trim() || undefined } : x))
+      );
       const updated = await TaskService.update(editingTask.id, {
         title,
         notes: editNotes.trim() || undefined,
@@ -245,7 +154,7 @@ export default function HomeScreen() {
     }
   };
 
-  // -------- Delete --------
+  // delete task
   const confirmDelete = (t: Task) => {
     Alert.alert('Delete task', `Delete “${t.title}”?`, [
       { text: 'Cancel', style: 'cancel' },
@@ -268,10 +177,7 @@ export default function HomeScreen() {
 
   const renderItem = ({ item }: { item: Task }) => (
     <View style={styles.taskItem}>
-      <TouchableOpacity
-        style={{ flex: 1, paddingRight: 8 }}
-        onPress={() => toggleTaskState(item)}
-      >
+      <TouchableOpacity style={{ flex: 1, paddingRight: 8 }} onPress={() => toggleTaskState(item)}>
         <Text style={styles.taskText}>{item.title}</Text>
         {item.notes ? <Text style={styles.notesText} numberOfLines={1}>{item.notes}</Text> : null}
       </TouchableOpacity>
@@ -289,8 +195,6 @@ export default function HomeScreen() {
   );
 
   return (
- 
-
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
@@ -300,23 +204,6 @@ export default function HomeScreen() {
 
       {/* Content */}
       <View style={styles.content}>
-<<<<<<< HEAD
-        <Text style={styles.sectionTitle}>Your Tasks</Text>
-
-        {loading ? (
-          <ActivityIndicator size="large" color="#999" />
-        ) : error ? (
-          <Text style={styles.errorText}>{error}</Text>
-        ) : tasks.length === 0 ? (
-          <View style={styles.placeholder}>
-            <LottieView
-              source={require('../../assets/empty-tasks.json')}
-              autoPlay
-              loop
-              style={{ width: 200, height: 200 }}
-            />
-            <Text style={styles.placeholderText}>No tasks yet. Add one!</Text>
-=======
         <View style={styles.row}>
           <Text style={styles.sectionTitle}>Your Tasks</Text>
           <TouchableOpacity style={styles.addBtn} onPress={openAddModal}>
@@ -335,21 +222,15 @@ export default function HomeScreen() {
           </View>
         ) : tasks.length === 0 ? (
           <View style={styles.placeholder}>
-            <Text style={styles.placeholderBig}>No tasks yet</Text>
-            <Text style={styles.placeholderText}>Tap “＋ New” to add your first task.</Text>
->>>>>>> feature/FitzDanos
+            <Text style={styles.placeholderText}>No tasks yet. Tap “＋ New” to add your first task.</Text>
           </View>
         ) : (
           <FlatList
             data={tasks}
             keyExtractor={item => item.id}
-<<<<<<< HEAD
-            renderItem={renderTask}
-=======
             renderItem={renderItem}
             refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
             contentContainerStyle={{ paddingBottom: 20 }}
->>>>>>> feature/FitzDanos
           />
         )}
       </View>
@@ -365,8 +246,6 @@ export default function HomeScreen() {
           <View style={styles.modalBackdrop}>
             <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.modalCard}>
               <Text style={styles.modalTitle}>New Task</Text>
-
-              <Text style={styles.inputLabel}>Title</Text>
               <TextInput
                 value={newTitle}
                 onChangeText={setNewTitle}
@@ -376,16 +255,13 @@ export default function HomeScreen() {
                 returnKeyType="done"
                 onSubmitEditing={submitNewTask}
               />
-
-              <Text style={[styles.inputLabel, { marginTop: 12 }]}>Notes (optional)</Text>
               <TextInput
                 value={newNotes}
                 onChangeText={setNewNotes}
                 placeholder="Add details…"
-                style={[styles.input, { height: 80 }]}
+                style={[styles.input, { height: 80, marginTop: 12 }]}
                 multiline
               />
-
               <View style={styles.modalActions}>
                 <TouchableOpacity onPress={() => setAddVisible(false)} style={[styles.modalBtn, styles.cancelBtn]} disabled={saving}>
                   <Text style={styles.cancelText}>Cancel</Text>
@@ -405,8 +281,6 @@ export default function HomeScreen() {
           <View style={styles.modalBackdrop}>
             <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.modalCard}>
               <Text style={styles.modalTitle}>Edit Task</Text>
-
-              <Text style={styles.inputLabel}>Title</Text>
               <TextInput
                 value={editTitle}
                 onChangeText={setEditTitle}
@@ -416,16 +290,13 @@ export default function HomeScreen() {
                 returnKeyType="done"
                 onSubmitEditing={submitEdit}
               />
-
-              <Text style={[styles.inputLabel, { marginTop: 12 }]}>Notes</Text>
               <TextInput
                 value={editNotes}
                 onChangeText={setEditNotes}
                 placeholder="Add details…"
-                style={[styles.input, { height: 80 }]}
+                style={[styles.input, { height: 80, marginTop: 12 }]}
                 multiline
               />
-
               <View style={styles.modalActions}>
                 <TouchableOpacity onPress={() => setEditVisible(false)} style={[styles.modalBtn, styles.cancelBtn]} disabled={editing}>
                   <Text style={styles.cancelText}>Cancel</Text>
@@ -448,83 +319,25 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f5f5f5' },
-  header: {
-    backgroundColor: '#fff',
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
-  },
-<<<<<<< HEAD
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#666',
-    marginTop: 4,
-  },
-  content: {
-    flex: 1,
-    padding: 20,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 16,
-  },
-  placeholder: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 20,
-  },
-  placeholderText: {
-    color: '#999',
-    fontSize: 14,
-    marginTop: 12,
-  },
-  errorText: {
-    color: '#ff5252',
-    fontSize: 14,
-    textAlign: 'center',
-    marginBottom: 12,
-  },
-  taskItem: {
-    backgroundColor: '#fff',
-    padding: 16,
-    borderRadius: 8,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  taskText: {
-    fontSize: 16,
-    color: '#333',
-  },
-  signOutButton: {
-    margin: 20,
-=======
+  header: { backgroundColor: '#fff', padding: 20, borderBottomWidth: 1, borderBottomColor: '#e0e0e0' },
   title: { fontSize: 24, fontWeight: 'bold', color: '#333' },
   subtitle: { fontSize: 16, color: '#666', marginTop: 4 },
   content: { flex: 1, padding: 20 },
+
   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
   sectionTitle: { fontSize: 18, fontWeight: '600', color: '#333' },
   addBtn: { backgroundColor: '#4285F4', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8 },
   addBtnText: { color: '#fff', fontWeight: '700' },
+
   placeholder: { alignItems: 'center', justifyContent: 'center', padding: 20 },
-  placeholderBig: { fontSize: 18, fontWeight: '600', color: '#333' },
-  placeholderText: { color: '#999', fontSize: 14, marginTop: 6 },
+  placeholderText: { color: '#999', fontSize: 14, marginTop: 12 },
+
   errorText: { color: '#ff5252', fontSize: 14, textAlign: 'center' },
   retryBtn: { backgroundColor: '#4285F4', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8 },
   retryText: { color: '#fff', fontWeight: '700' },
 
   taskItem: {
     backgroundColor: '#fff',
->>>>>>> feature/FitzDanos
     padding: 16,
     borderRadius: 10,
     marginBottom: 12,
@@ -537,6 +350,7 @@ const styles = StyleSheet.create({
   },
   taskText: { fontSize: 16, color: '#222', fontWeight: '600' },
   notesText: { fontSize: 12, color: '#777', marginTop: 4 },
+
   actionsRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   smallBtn: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8 },
   editBtn: { backgroundColor: '#E3F2FD' },
@@ -552,8 +366,6 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     fontSize: 12,
   },
-<<<<<<< HEAD
-=======
 
   signOutButton: { margin: 20, padding: 16, backgroundColor: '#ff5252', borderRadius: 8, alignItems: 'center' },
   signOutButtonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
@@ -563,18 +375,11 @@ const styles = StyleSheet.create({
   modalCard: { backgroundColor: '#fff', padding: 16, borderTopLeftRadius: 16, borderTopRightRadius: 16 },
   modalTitle: { fontSize: 18, fontWeight: '700', color: '#222', marginBottom: 12 },
   inputLabel: { fontSize: 12, color: '#666', marginBottom: 4 },
-  input: {
-    backgroundColor: '#f6f6f6',
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 16,
-    color: '#222',
-  },
+  input: { backgroundColor: '#f6f6f6', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, fontSize: 16, color: '#222' },
   modalActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 12, marginTop: 16 },
   modalBtn: { paddingHorizontal: 16, paddingVertical: 12, borderRadius: 10 },
   cancelBtn: { backgroundColor: '#eee' },
   cancelText: { color: '#333', fontWeight: '600' },
   addBtnSolid: { backgroundColor: '#4285F4' },
->>>>>>> feature/FitzDanos
 });
+
