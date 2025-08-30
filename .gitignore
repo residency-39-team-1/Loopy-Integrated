@@ -9,6 +9,7 @@
 **/ios/Pods/
 **/ios/build/
 
+<<<<<<< HEAD
 # Env & secrets
 *.keystore
 *.p8
@@ -27,3 +28,25 @@ serviceAccount*.json
 *.json
 
 backend/accounts.json
+=======
+# Firebase Admin key
+serviceAccount.json
+# Node
+frontend/node_modules/
+backend/node_modules/
+npm-debug.log*
+yarn.lock
+pnpm-lock.yaml
+
+# Expo / RN build outputs
+frontend/android/
+frontend/ios/
+frontend/.expo/
+.expo/
+.expo-shared/
+
+# Python
+backend/.venv/
+__pycache__/
+*.pyc
+>>>>>>> feature/FitzDanos
