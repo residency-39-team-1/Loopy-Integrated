@@ -1,12 +1,35 @@
+# backend/app.py
+import os
 from flask import Flask, jsonify
 from flask_cors import CORS
 
+# use absolute imports everywhere
 from backend.crud.tasks import register_task_routes
 from backend.crud.archived import register_archived_routes
 from backend.crud.users import register_user_routes
 
+import firebase_admin
+from firebase_admin import credentials
+
+def _init_firebase_admin():
+    if firebase_admin._apps:
+        return
+    gcred = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
+    if gcred and os.path.exists(gcred):
+        firebase_admin.initialize_app()
+    else:
+        sa_path = os.getenv("FIREBASE_SERVICE_ACCOUNT", "serviceAccount.json")
+        if not os.path.exists(sa_path):
+            raise RuntimeError(
+                "Firebase Admin needs credentials. Set GOOGLE_APPLICATION_CREDENTIALS "
+                "to a service account JSON, or provide FIREBASE_SERVICE_ACCOUNT path."
+            )
+        firebase_admin.initialize_app(credentials.Certificate(sa_path))
+
 app = Flask(__name__)
-CORS(app)
+CORS(app, resources={r"/*": {"origins": "*"}})
+
+_init_firebase_admin()
 
 @app.get("/")
 def index():
@@ -16,10 +39,13 @@ def index():
 def health():
     return jsonify({"ok": True}), 200
 
-# attach route groups
 register_task_routes(app)
 register_archived_routes(app)
 register_user_routes(app)
 
 if __name__ == "__main__":
-    app.run(debug=True, host="0.0.0.0", port=int(__import__("os").getenv("PORT","5000")))
+    app.run(
+        debug=True,
+        host="0.0.0.0",
+        port=int(os.getenv("PORT", "5001"))
+    )
