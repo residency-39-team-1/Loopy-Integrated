@@ -1,1 +1,51 @@
+<<<<<<< HEAD
 
+=======
+{
+  "project_info": {
+    "project_number": "39855210543",
+    "project_id": "loopy-productivity-app",
+    "storage_bucket": "loopy-productivity-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:39855210543:android:3df72711625cddabe6c6da",
+        "android_client_info": {
+          "package_name": "loopy.productivity.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "39855210543-v2qlu5rebiu13qflers0atib10c10ame.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "loopy.productivity.app",
+            "certificate_hash": "8b5c23afb586f03130794888cd9c2278418e4aef"
+          }
+        },
+        {
+          "client_id": "39855210543-eqbv7f2ia13apocshc46opgtqec5sqld.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBJOq2m9b8JKo5tFwVfpNveWmpcl4jDcAc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "39855210543-eqbv7f2ia13apocshc46opgtqec5sqld.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
+>>>>>>> feature/FitzDanos
