@@ -50,3 +50,4 @@ backend/.venv/
 __pycache__/
 *.pyc
 >>>>>>> feature/FitzDanos
+.DS_Store
