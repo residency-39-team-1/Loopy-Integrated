@@ -1,4 +1,4 @@
-
+// src/App.tsx
 import '@react-native-firebase/app';
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
@@ -6,10 +6,17 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { ActivityIndicator, View, StyleSheet } from 'react-native';
 
 import { AuthProvider, useAuth } from './contexts/AuthContext';
-import { TaskProvider } from './contexts/TaskContext'; // <- make sure this path matches your file
+import { TaskProvider } from './contexts/TaskContext';
 
-import HomeScreen from './screens/HomeScreen';
+import DashboardScreen from './screens/DashboardScreen';
+import TaskListScreen from './screens/TaskListScreen';
 import LoginScreen from './screens/LoginScreen';
+
+// Placeholder screens
+import FlowboardScreen from './screens/FlowboardScreen';
+import ChaosCatcherScreen from './screens/ChaosCatcherScreen';
+import ProgressScreen from './screens/ProgressScreen';
+import DailyResetScreen from './screens/DailyResetScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -24,18 +31,21 @@ function RootNavigator() {
     );
   }
 
-  // When signed in, wrap the signed-in stack with TaskProvider
   if (user) {
     return (
       <TaskProvider>
         <Stack.Navigator screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="Home" component={HomeScreen} />
+          <Stack.Screen name="Dashboard" component={DashboardScreen} />
+          <Stack.Screen name="TaskList" component={TaskListScreen} />
+          <Stack.Screen name="Flowboard" component={FlowboardScreen} />
+          <Stack.Screen name="ChaosCatcher" component={ChaosCatcherScreen} />
+          <Stack.Screen name="Progress" component={ProgressScreen} />
+          <Stack.Screen name="DailyReset" component={DailyResetScreen} />
         </Stack.Navigator>
       </TaskProvider>
     );
   }
 
-  // Otherwise show Login
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="Login" component={LoginScreen} />
