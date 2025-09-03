@@ -51,3 +51,6 @@ __pycache__/
 *.pyc
 .DS_Store
 
+
+backend/accounts.json
+frontend/android/app/google-services.json
