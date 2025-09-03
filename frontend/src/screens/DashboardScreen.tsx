@@ -38,7 +38,7 @@ export default function DashboardScreen({ navigation }) {
         {/* Tasks button */}
         <TouchableOpacity
           style={[styles.tile, styles.primary]}
-          onPress={() => navigation.navigate('Tasks')}
+          onPress={() => navigation.navigate('TaskList')}
         >
           <Text style={styles.emoji}>📝</Text>
           <Text style={styles.tileText}>Tasks</Text>
