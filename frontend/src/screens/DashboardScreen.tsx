@@ -35,18 +35,9 @@ export default function DashboardScreen({ navigation }) {
 
       {/* Feature grid */}
       <View style={styles.grid}>
-        {/* Tasks button */}
-        <TouchableOpacity
-          style={[styles.tile, styles.primary]}
-          onPress={() => navigation.navigate('TaskList')}
-        >
-          <Text style={styles.emoji}>📝</Text>
-          <Text style={styles.tileText}>Tasks</Text>
-        </TouchableOpacity>
-
         {/* Flowboard button */}
         <TouchableOpacity
-          style={[styles.tile, styles.secondary]}
+          style={[styles.tile, styles.primary]}
           onPress={() => navigation.navigate('Flowboard')}
         >
           <Text style={styles.emoji}>🎯</Text>
@@ -55,7 +46,7 @@ export default function DashboardScreen({ navigation }) {
 
         {/* Chaos Catcher button */}
         <TouchableOpacity
-          style={[styles.tile, styles.tertiary]}
+          style={[styles.tile, styles.secondary]}
           onPress={() => navigation.navigate('ChaosCatcher')}
         >
           <Text style={styles.emoji}>🌪️</Text>
@@ -64,7 +55,7 @@ export default function DashboardScreen({ navigation }) {
 
         {/* Progress button */}
         <TouchableOpacity
-          style={[styles.tile, styles.quaternary]}
+          style={[styles.tile, styles.tertiary]}
           onPress={() => navigation.navigate('Progress')}
         >
           <Text style={styles.emoji}>🏆</Text>
@@ -102,7 +93,6 @@ const styles = StyleSheet.create({
   primary: { backgroundColor: '#E3F2FD' },
   secondary: { backgroundColor: '#F3E5F5' },
   tertiary: { backgroundColor: '#FFF3E0' },
-  quaternary: { backgroundColor: '#E8F5E8' },
 
   emoji: { fontSize: 28, marginBottom: 6 },
   tileText: { fontSize: 16, fontWeight: '600', color: '#333' },

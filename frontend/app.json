@@ -17,12 +17,16 @@
       "**/*"
     ],
     "android": {
-      "package": "com.yourcompany.loopy"
+      "package": "com.yourcompany.loopy",
+      "googleServicesFile": "./android/app/google-services.json"
     },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.yourcompany.loopy"
     },
+    "plugins": [
+      "@react-native-firebase/app"
+    ],
     "extra": {
       "eas": {
         "projectId": "replace-this-with-your-eas-project-id"
