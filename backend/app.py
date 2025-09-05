@@ -7,6 +7,7 @@ from flask_cors import CORS
 from backend.crud.tasks import register_task_routes
 from backend.crud.archived import register_archived_routes
 from backend.crud.users import register_user_routes
+from backend.crud.chaos_catcher import bp as chaos_bp
 
 import firebase_admin
 from firebase_admin import credentials
@@ -42,6 +43,7 @@ def health():
 register_task_routes(app)
 register_archived_routes(app)
 register_user_routes(app)
+app.register_blueprint(chaos_bp)
 
 if __name__ == "__main__":
     app.run(
