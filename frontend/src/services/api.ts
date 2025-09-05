@@ -8,7 +8,7 @@ const API_BASE =
 async function getIdToken(): Promise<string> {
   const user = auth().currentUser;
   if (!user) throw new Error('Not authenticated');
-  const token = await user.getIdToken(/* forceRefresh */ true);
+  const token = await user.getIdToken(); // Remove forceRefresh to use cached token
   return token;
 }
 

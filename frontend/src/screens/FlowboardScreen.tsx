@@ -95,7 +95,7 @@ export default function FlowboardScreen({ navigation }: { navigation: any }) {
     let cancelled = false;
     (async () => {
       try {
-        const items = await listTasks({ orderBy: 'createdAt', limit: 200 });
+        const items = await listTasks({ orderBy: 'createdAt', limit: 50 });
         if (cancelled) return;
         setTasks(items.map(t => ({
           id: t.id,

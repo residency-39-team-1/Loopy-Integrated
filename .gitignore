@@ -53,4 +53,5 @@ __pycache__/
 
 
 backend/accounts.json
+frontend/android/app/google-services.jsonbackend/accounts.json
 frontend/android/app/google-services.json
