@@ -17,7 +17,7 @@ import LoginScreen from './screens/LoginScreen';
 import FlowboardScreen from './screens/FlowboardScreen';
 import ChaosCatcherScreen from './screens/ChaosCatcherScreen';
 import ProgressScreen from './screens/ProgressScreen';
-import DailyResetScreen from './screens/DailyResetScreen';
+import ArchiveScreen from './screens/ArchiveScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -65,10 +65,10 @@ function RootNavigator() {
             }}
           />
           <Stack.Screen 
-            name="DailyReset" 
-            component={DailyResetScreen}
+            name="Archive" 
+            component={ArchiveScreen}
             options={{
-              animation: 'slide_from_bottom',
+              animation: 'slide_from_right',
             }}
           />
         </Stack.Navigator>

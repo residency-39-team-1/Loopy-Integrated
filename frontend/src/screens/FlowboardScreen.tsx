@@ -21,6 +21,7 @@ import { createTask, updateTask, deleteTask, type BackendTask } from '../service
 import { useTasks } from '../contexts/TaskContext';
 import LoadingOverlay from '../components/LoadingOverlay';
 import Celebration from '../components/Celebration';
+import { type TaskState } from '../types/task';
 
 // PRD-compliant, emotionally-neutral states
 type UIState = 'Exploring' | 'Active' | 'Reviewing' | 'Complete';
@@ -35,12 +36,16 @@ const COLUMN_COLORS = {
 };
 
 // State mappers
-const toUIState = (s: BackendTask['state']): UIState => {
+const toUIState = (s: BackendTask['state'] | TaskState): UIState => {
   switch (s) {
     case 'Exploring': return 'Exploring';
     case 'Planning':  return 'Active';
     case 'Doing':     return 'Reviewing';
     case 'Done':      return 'Complete';
+    // Handle TaskState values (if they're already UI states)
+    case 'Active':    return 'Active';
+    case 'Reviewing': return 'Reviewing';
+    case 'Complete':  return 'Complete';
     default:          return 'Exploring';
   }
 };
@@ -54,7 +59,7 @@ const toBackendState = (s: UIState): BackendTask['state'] => {
   }
 };
 
-type Task = {
+type UITask = {
   id: string;
   title: string;
   notes?: string;
@@ -63,11 +68,11 @@ type Task = {
 
 export default function FlowboardScreen({ navigation }: { navigation: any }) {
   const { tasks: contextTasks, isLoading, error, refresh } = useTasks();
-  const [optimisticTasks, setOptimisticTasks] = useState<Task[]>([]);
+  const [optimisticTasks, setOptimisticTasks] = useState<UITask[]>([]);
   const [celebrate, setCelebrate] = useState(false);
   
   // Task overlay state
-  const [overlayTask, setOverlayTask] = useState<Task | null>(null);
+  const [overlayTask, setOverlayTask] = useState<UITask | null>(null);
   
   // Exploring column collapsed state
   const [exploringCollapsed, setExploringCollapsed] = useState(true);
@@ -81,14 +86,14 @@ export default function FlowboardScreen({ navigation }: { navigation: any }) {
   const [newTitle, setNewTitle] = useState('');
   const [newNotes, setNewNotes] = useState('');
   const [newState, setNewState] = useState<UIState>('Exploring');
-  const [editTask, setEditTask] = useState<Task | null>(null);
+  const [editTask, setEditTask] = useState<UITask | null>(null);
   const [editTitle, setEditTitle] = useState('');
   const [editNotes, setEditNotes] = useState('');
   const [saving, setSaving] = useState(false);
 
   // Convert context tasks to flowboard tasks and keep optimistic updates
   const tasks = useMemo(() => {
-    const contextMapped = contextTasks.map(t => ({
+    const contextMapped: UITask[] = contextTasks.map(t => ({
       id: t.id,
       title: t.title ?? '',
       notes: t.notes,
@@ -107,7 +112,7 @@ export default function FlowboardScreen({ navigation }: { navigation: any }) {
 
   // Group by column
   const byColumn = useMemo(() => {
-    const map: Record<UIState, Task[]> = { Exploring: [], Active: [], Reviewing: [], Complete: [] };
+    const map: Record<UIState, UITask[]> = { Exploring: [], Active: [], Reviewing: [], Complete: [] };
     tasks.forEach(t => map[t.state].push(t));
     return map;
   }, [tasks]);
@@ -171,7 +176,7 @@ export default function FlowboardScreen({ navigation }: { navigation: any }) {
     
     // Create temporary ID for optimistic update
     const tempId = `temp-${Date.now()}`;
-    const newTask: Task = {
+    const newTask: UITask = {
       id: tempId,
       title,
       notes: newNotes.trim() || undefined,
@@ -216,7 +221,7 @@ export default function FlowboardScreen({ navigation }: { navigation: any }) {
   };
 
   // Edit task
-  const openEditModal = (task: Task) => {
+  const openEditModal = (task: UITask) => {
     setEditTask(task);
     setEditTitle(task.title);
     setEditNotes(task.notes || '');
@@ -262,7 +267,7 @@ export default function FlowboardScreen({ navigation }: { navigation: any }) {
   };
 
   // Delete task
-  const confirmDelete = (task: Task) => {
+  const confirmDelete = (task: UITask) => {
     Alert.alert('Delete task', `Delete "${task.title}"?`, [
       { text: 'Cancel', style: 'cancel' },
       {
@@ -288,8 +293,150 @@ export default function FlowboardScreen({ navigation }: { navigation: any }) {
     ]);
   };
 
+  // Bulk operations
+  const [bulkLoading, setBulkLoading] = useState(false);
+
+  const bulkMoveTasks = async (fromState: UIState, toState: UIState) => {
+    const tasksToMove = byColumn[fromState];
+    if (tasksToMove.length === 0) return;
+
+    try {
+      setBulkLoading(true);
+      
+      // Optimistic update - immediately move all tasks in UI
+      setOptimisticTasks(prev => 
+        prev.map(t => tasksToMove.find(mt => mt.id === t.id) ? { ...t, state: toState } : t)
+      );
+
+      const updates = tasksToMove.map(task => 
+        updateTask(task.id, { state: toBackendState(toState) })
+      );
+
+      await Promise.all(updates);
+      await refresh(); // Sync with backend
+      
+      if (Platform.OS !== 'web') {
+        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      }
+      
+      if (toState === 'Complete') setCelebrate(true);
+    } catch (error: any) {
+      // Revert optimistic update on error
+      setOptimisticTasks(prev => 
+        prev.map(t => tasksToMove.find(mt => mt.id === t.id) ? { ...t, state: fromState } : t)
+      );
+      Alert.alert('Bulk move failed', error?.message || 'Failed to move tasks');
+    } finally {
+      setBulkLoading(false);
+    }
+  };
+
+  const archiveAllComplete = async () => {
+    const tasksToArchive = byColumn.Complete;
+    if (tasksToArchive.length === 0) return;
+    
+    Alert.alert(
+      'Archive All Complete',
+      `Archive ${tasksToArchive.length} completed tasks?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Archive', 
+          onPress: async () => {
+            try {
+              setBulkLoading(true);
+              
+              // Optimistic update - immediately remove tasks from UI
+              setOptimisticTasks(prev => 
+                prev.filter(t => !tasksToArchive.find(at => at.id === t.id))
+              );
+
+              await Promise.all(tasksToArchive.map(task => deleteTask(task.id)));
+              await refresh(); // Sync with backend
+              
+              if (Platform.OS !== 'web') {
+                await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+              }
+            } catch (error: any) {
+              // Revert optimistic update on error - add tasks back
+              setOptimisticTasks(prev => [...prev, ...tasksToArchive]);
+              Alert.alert('Archive failed', error?.message || 'Failed to archive tasks');
+            } finally {
+              setBulkLoading(false);
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  const handleRestart = async () => {
+    Alert.alert(
+      'Restart Workflow',
+      'This will:\n• Archive all Complete tasks\n• Move Reviewing → Complete\n• Move Active → Exploring',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Restart', 
+          onPress: async () => {
+            try {
+              setBulkLoading(true);
+              
+              // Step 1: Handle Complete tasks with confirmation
+              if (byColumn.Complete.length > 0) {
+                await new Promise<void>(resolve => {
+                  Alert.alert(
+                    'Archive Complete Tasks',
+                    `Archive ${byColumn.Complete.length} completed tasks?`,
+                    [
+                      { 
+                        text: 'Skip', 
+                        onPress: () => resolve()
+                      },
+                      { 
+                        text: 'Archive', 
+                        onPress: async () => {
+                          try {
+                            await Promise.all(byColumn.Complete.map(task => deleteTask(task.id)));
+                            await refresh(); // Sync after archive
+                          } catch (error: any) {
+                            Alert.alert('Archive failed', error?.message || 'Failed to archive tasks');
+                          }
+                          resolve();
+                        }
+                      }
+                    ]
+                  );
+                });
+              }
+              
+              if (byColumn.Reviewing.length > 0) {
+                await bulkMoveTasks('Reviewing', 'Complete');
+              }
+              
+              if (byColumn.Active.length > 0) {
+                await bulkMoveTasks('Active', 'Exploring');
+              }
+              
+              // Final refresh to ensure UI is fully synced with backend
+              await refresh();
+              
+              if (Platform.OS !== 'web') {
+                await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+              }
+            } catch (error: any) {
+              Alert.alert('Restart failed', error?.message || 'Failed to restart workflow');
+            } finally {
+              setBulkLoading(false);
+            }
+          }
+        }
+      ]
+    );
+  };
+
   // Task card with sandwich menu
-  const TaskCard = ({ item }: { item: Task }) => {
+  const TaskCard = ({ item }: { item: UITask }) => {
     return (
       <View style={styles.taskRow}>
         <DraxView
@@ -363,9 +510,22 @@ export default function FlowboardScreen({ navigation }: { navigation: any }) {
       {/* Header with + New button */}
       <View style={styles.header}>
         <Text style={styles.title}>Flowboard</Text>
-        <TouchableOpacity style={styles.addButton} onPress={openAddModal}>
-          <Text style={styles.addButtonText}>+ New</Text>
-        </TouchableOpacity>
+        <View style={styles.headerButtons}>
+          <TouchableOpacity 
+            style={[styles.restartButton, bulkLoading && styles.buttonDisabled]} 
+            onPress={handleRestart}
+            disabled={bulkLoading}
+          >
+            <Text style={styles.restartButtonText}>Restart</Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={[styles.addButton, bulkLoading && styles.buttonDisabled]} 
+            onPress={openAddModal}
+            disabled={bulkLoading}
+          >
+            <Text style={styles.addButtonText}>+ New</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Columns */}
@@ -415,6 +575,66 @@ export default function FlowboardScreen({ navigation }: { navigation: any }) {
                   </>
                 )}
               </View>
+              
+              {/* Action chips - DISABLED
+              {!exploringCollapsed && (
+                <View style={styles.actionRow}>
+                  {col === 'Active' && (
+                    <>
+                      <TouchableOpacity 
+                        onPress={() => bulkMoveTasks('Active', 'Exploring')} 
+                        style={[styles.chip, bulkLoading && styles.chipDisabled]}
+                        disabled={bulkLoading || byColumn.Active.length === 0}
+                      >
+                        <Text style={styles.chipText}>→ Exploring</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity 
+                        onPress={() => bulkMoveTasks('Active', 'Reviewing')} 
+                        style={[styles.chip, bulkLoading && styles.chipDisabled]}
+                        disabled={bulkLoading || byColumn.Active.length === 0}
+                      >
+                        <Text style={styles.chipText}>→ Reviewing</Text>
+                      </TouchableOpacity>
+                    </>
+                  )}
+                  {col === 'Reviewing' && (
+                    <>
+                      <TouchableOpacity 
+                        onPress={() => bulkMoveTasks('Reviewing', 'Active')} 
+                        style={[styles.chip, bulkLoading && styles.chipDisabled]}
+                        disabled={bulkLoading || byColumn.Reviewing.length === 0}
+                      >
+                        <Text style={styles.chipText}>→ Active</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity 
+                        onPress={() => bulkMoveTasks('Reviewing', 'Complete')} 
+                        style={[styles.chip, bulkLoading && styles.chipDisabled]}
+                        disabled={bulkLoading || byColumn.Reviewing.length === 0}
+                      >
+                        <Text style={styles.chipText}>→ Complete</Text>
+                      </TouchableOpacity>
+                    </>
+                  )}
+                  {col === 'Complete' && (
+                    <>
+                      <TouchableOpacity 
+                        onPress={() => bulkMoveTasks('Complete', 'Reviewing')} 
+                        style={[styles.chip, bulkLoading && styles.chipDisabled]}
+                        disabled={bulkLoading || byColumn.Complete.length === 0}
+                      >
+                        <Text style={styles.chipText}>→ Reviewing</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity 
+                        onPress={archiveAllComplete} 
+                        style={[styles.archiveChip, bulkLoading && styles.chipDisabled]}
+                        disabled={bulkLoading || byColumn.Complete.length === 0}
+                      >
+                        <Text style={styles.archiveChipText}>Archive All</Text>
+                      </TouchableOpacity>
+                    </>
+                  )}
+                </View>
+              )} */}
               
               <View style={styles.columnContent}>
                 {col === 'Exploring' && exploringCollapsed ? (
@@ -589,7 +809,7 @@ export default function FlowboardScreen({ navigation }: { navigation: any }) {
         </TouchableWithoutFeedback>
       </Modal>
 
-      <LoadingOverlay visible={isLoading || saving} />
+      <LoadingOverlay visible={isLoading || saving || bulkLoading} />
       <Celebration visible={celebrate} onDone={() => setCelebrate(false)} />
     </SafeAreaView>
   );
@@ -882,4 +1102,59 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   addButtonModalText: { fontSize: 16, fontWeight: '700', color: '#fff' },
+
+  // Header buttons
+  headerButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  restartButton: {
+    backgroundColor: '#F59E0B',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  restartButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  buttonDisabled: {
+    opacity: 0.5,
+  },
+
+  // Action chips
+  actionRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 6,
+    marginBottom: 8,
+    paddingHorizontal: 4,
+  },
+  chip: {
+    backgroundColor: '#e5e7eb',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  chipText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#374151',
+  },
+  archiveChip: {
+    backgroundColor: '#dc2626',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  archiveChipText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  chipDisabled: {
+    opacity: 0.5,
+  },
 });

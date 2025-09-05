@@ -3,7 +3,7 @@ import auth from '@react-native-firebase/auth';
 
 const API_BASE =
   process.env.EXPO_PUBLIC_API_BASE?.replace(/\/+$/, '') ||
-  'http://10.0.2.2:5001'; // Android emulator to localhost
+  'http://192.168.1.219:5001'; // Your PC IP - works for real device demos
 
 async function getIdToken(): Promise<string> {
   const user = auth().currentUser;

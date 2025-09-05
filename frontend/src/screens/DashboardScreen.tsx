@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { useAuth } from '../contexts/AuthContext';
 
-export default function DashboardScreen({ navigation }) {
+export default function DashboardScreen({ navigation }: { navigation: any }) {
   const { user, signOut } = useAuth();
   const [settingsVisible, setSettingsVisible] = useState(false);
 
@@ -85,12 +85,12 @@ export default function DashboardScreen({ navigation }) {
                   style={styles.settingsOption}
                   onPress={() => {
                     setSettingsVisible(false);
-                    // Future: navigate to archive
+                    navigation.navigate('Archive');
                   }}
                 >
                   <Text style={styles.settingsOptionIcon}>📦</Text>
                   <Text style={styles.settingsOptionText}>Archive</Text>
-                  <Text style={styles.settingsOptionSubtext}>Coming soon</Text>
+                  <Text style={styles.settingsOptionSubtext}>View archived items</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity 
