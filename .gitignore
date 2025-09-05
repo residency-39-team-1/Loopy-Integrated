@@ -1,57 +1,56 @@
-# Node / RN
-**/node_modules/
-**/.expo/
-**/.expo-shared/
-**/.gradle/
-**/.idea/
-**/build/
-**/android/app/build/
-**/ios/Pods/
-**/ios/build/
-
-
-# Env & secrets
-*.keystore
-*.p8
-*.pem
-*.jks
-*.keystore
-*.env
-*.env.*
-*firebase-adminsdk*.json
-serviceAccount*.json
-
-# Misc
-.DS_Store
-
-# secrets
-*.json
-
-backend/accounts.json
-
-# Firebase Admin key
-serviceAccount.json
-# Node
-frontend/node_modules/
-backend/node_modules/
+# ---------- Node / React Native ----------
+node_modules/
 npm-debug.log*
-yarn.lock
+yarn-debug.log*
+yarn-error.log*
 pnpm-lock.yaml
 
-# Expo / RN build outputs
-frontend/android/
-frontend/ios/
-frontend/.expo/
+# Expo / RN caches & outputs
 .expo/
 .expo-shared/
+frontend/.expo/
+frontend/.expo-shared/
+frontend/android/.gradle/
+frontend/android/app/build/
+frontend/ios/build/
+frontend/ios/Pods/
+watchmanconfig
 
-# Python
+# If you are using Expo-managed and do NOT want native projects tracked, uncomment:
+# frontend/android/
+# frontend/ios/
+
+# ---------- Env & Secrets ----------
+# Never ignore all JSON (package.json, app.json must stay!)
+# Ignore only the sensitive ones explicitly:
+backend/accounts.json
+frontend/android/app/google-services.json
+*.keystore
+*.jks
+*.p8
+*.pem
+*.env
+*.env.*
+
+# ---------- Python / Flask ----------
+# virtual envs & caches
+.venv/
+venv/
 backend/.venv/
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
+*.pytest_cache/
+.coverage
+htmlcov/
+
+# DB / instance (if used)
+instance/
+*.sqlite3
+
+# ---------- OS / Editors ----------
 .DS_Store
-
-
-backend/accounts.json
-frontend/android/app/google-services.jsonbackend/accounts.json
-frontend/android/app/google-services.json
+Thumbs.db
+.vscode/
+.idea/
