@@ -7,7 +7,7 @@ import type {
   UpdateTaskInput,
 } from './TaskService.types'; // <-- or adjust to your actual path; see note below
 
-const API_BASE = process.env.EXPO_PUBLIC_API_BASE || 'http://127.0.0.1:5001';
+const API_BASE = process.env.EXPO_PUBLIC_API_BASE?.replace(/\/+$/, '') || 'http://192.168.1.219:5001';
 
 async function getToken(): Promise<string> {
   const user = auth().currentUser;
