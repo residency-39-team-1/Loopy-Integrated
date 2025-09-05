@@ -1,5 +1,5 @@
 // src/screens/FlowboardScreen.tsx
-import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useCallback, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   FlatList,
   StyleSheet,
-  ActivityIndicator,
   Alert,
   SafeAreaView,
   Modal,
@@ -18,7 +17,8 @@ import {
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { DraxProvider, DraxView } from 'react-native-drax';
-import { listTasks, createTask, updateTask, deleteTask, type BackendTask } from '../services/api';
+import { createTask, updateTask, deleteTask, type BackendTask } from '../services/api';
+import { useTasks } from '../contexts/TaskContext';
 import LoadingOverlay from '../components/LoadingOverlay';
 import Celebration from '../components/Celebration';
 
@@ -62,9 +62,8 @@ type Task = {
 };
 
 export default function FlowboardScreen({ navigation }: { navigation: any }) {
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { tasks: contextTasks, isLoading, error, refresh } = useTasks();
+  const [optimisticTasks, setOptimisticTasks] = useState<Task[]>([]);
   const [celebrate, setCelebrate] = useState(false);
   
   // Task overlay state
@@ -72,9 +71,6 @@ export default function FlowboardScreen({ navigation }: { navigation: any }) {
   
   // Exploring column collapsed state
   const [exploringCollapsed, setExploringCollapsed] = useState(true);
-  
-  // Archive state tracking (frontend only)
-  const [archivedTaskIds, setArchivedTaskIds] = useState<Set<string>>(new Set());
 
   // Prevent duplicate move operations
   const pendingMoves = useRef(new Set<string>()).current;
@@ -90,28 +86,24 @@ export default function FlowboardScreen({ navigation }: { navigation: any }) {
   const [editNotes, setEditNotes] = useState('');
   const [saving, setSaving] = useState(false);
 
-  // Load tasks
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const items = await listTasks({ orderBy: 'createdAt', limit: 50 });
-        if (cancelled) return;
-        setTasks(items.map(t => ({
-          id: t.id,
-          title: t.title ?? '',
-          notes: t.notes,
-          state: toUIState(t.state),
-        })));
-        setLoading(false);
-      } catch (e: any) {
-        if (cancelled) return;
-        setError(e?.message ?? String(e));
-        setLoading(false);
-      }
-    })();
-    return () => { cancelled = true };
-  }, []);
+  // Convert context tasks to flowboard tasks and keep optimistic updates
+  const tasks = useMemo(() => {
+    const contextMapped = contextTasks.map(t => ({
+      id: t.id,
+      title: t.title ?? '',
+      notes: t.notes,
+      state: toUIState(t.state),
+    }));
+    
+    // If optimistic tasks is empty, use context tasks
+    if (optimisticTasks.length === 0 && contextMapped.length > 0) {
+      setOptimisticTasks(contextMapped);
+      return contextMapped;
+    }
+    
+    // Otherwise use optimistic tasks for immediate updates
+    return optimisticTasks.length > 0 ? optimisticTasks : contextMapped;
+  }, [contextTasks, optimisticTasks]);
 
   // Group by column
   const byColumn = useMemo(() => {
@@ -129,29 +121,33 @@ export default function FlowboardScreen({ navigation }: { navigation: any }) {
       return;
     }
 
-    const originalState = tasks.find(t => t.id === taskId)?.state;
-    if (!originalState) return;
+    const originalTask = tasks.find(t => t.id === taskId);
+    if (!originalTask) return;
 
     // Skip if task is already in the target state
-    if (originalState === target) {
+    if (originalTask.state === target) {
       console.log('Task already in target state:', taskId, target);
       return;
     }
 
     pendingMoves.add(moveKey);
 
-    try {
-      // Optimistic update
-      setTasks(prev => prev.map(t => (t.id === taskId ? { ...t, state: target } : t)));
+    // Optimistic update - immediately move task in UI
+    setOptimisticTasks(prev => 
+      prev.map(t => t.id === taskId ? { ...t, state: target } : t)
+    );
 
+    try {
       await updateTask(taskId, { state: toBackendState(target) });
       if (Platform.OS !== 'web') {
         await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       }
       if (target === 'Complete') setCelebrate(true);
     } catch (e: any) {
-      // Revert on error
-      setTasks(prev => prev.map(t => (t.id === taskId ? { ...t, state: originalState } : t)));
+      // Revert optimistic update on error
+      setOptimisticTasks(prev => 
+        prev.map(t => t.id === taskId ? { ...t, state: originalTask.state } : t)
+      );
       if (Platform.OS !== 'web') {
         await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       }
@@ -172,10 +168,38 @@ export default function FlowboardScreen({ navigation }: { navigation: any }) {
   const submitNewTask = async () => {
     const title = newTitle.trim();
     if (!title) return Alert.alert('Title required', 'Please enter a task title.');
+    
+    // Create temporary ID for optimistic update
+    const tempId = `temp-${Date.now()}`;
+    const newTask: Task = {
+      id: tempId,
+      title,
+      notes: newNotes.trim() || undefined,
+      state: newState,
+    };
+
     try {
       setSaving(true);
-      const created = await createTask({ title, notes: newNotes.trim() || undefined, state: toBackendState(newState) });
-      setTasks(prev => [{ id: created.id, title: created.title ?? title, notes: created.notes, state: newState }, ...prev]);
+      
+      // Optimistic update - immediately add task to UI
+      setOptimisticTasks(prev => [newTask, ...prev]);
+      
+      const created = await createTask({ 
+        title, 
+        notes: newNotes.trim() || undefined, 
+        state: toBackendState(newState) 
+      });
+      
+      // Replace temp task with real task
+      setOptimisticTasks(prev => 
+        prev.map(t => t.id === tempId ? {
+          id: created.id,
+          title: created.title ?? title,
+          notes: created.notes,
+          state: toUIState(created.state),
+        } : t)
+      );
+      
       setAddVisible(false);
       setNewTitle('');
       setNewNotes('');
@@ -183,6 +207,8 @@ export default function FlowboardScreen({ navigation }: { navigation: any }) {
         await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       }
     } catch (e: any) {
+      // Remove optimistic task on error
+      setOptimisticTasks(prev => prev.filter(t => t.id !== tempId));
       Alert.alert('Could not add task', String(e?.message ?? e));
     } finally {
       setSaving(false);
@@ -202,12 +228,33 @@ export default function FlowboardScreen({ navigation }: { navigation: any }) {
     if (!editTask) return;
     const title = editTitle.trim();
     if (!title) return Alert.alert('Title required', 'Please enter a task title.');
+    
+    const originalTask = editTask;
+    const updatedTask = {
+      ...editTask,
+      title,
+      notes: editNotes.trim() || undefined,
+    };
+
     try {
       setSaving(true);
-      await updateTask(editTask.id, { title, notes: editNotes.trim() || undefined });
-      setTasks(prev => prev.map(t => (t.id === editTask.id ? { ...t, title, notes: editNotes.trim() || undefined } : t)));
+      
+      // Optimistic update - immediately update task in UI
+      setOptimisticTasks(prev => 
+        prev.map(t => t.id === editTask.id ? updatedTask : t)
+      );
+      
+      await updateTask(editTask.id, { 
+        title, 
+        notes: editNotes.trim() || undefined 
+      });
+      
       setEditVisible(false);
     } catch (e: any) {
+      // Revert optimistic update on error
+      setOptimisticTasks(prev => 
+        prev.map(t => t.id === editTask.id ? originalTask : t)
+      );
       Alert.alert('Save failed', e?.message || 'Unknown error');
     } finally {
       setSaving(false);
@@ -223,13 +270,17 @@ export default function FlowboardScreen({ navigation }: { navigation: any }) {
         style: 'destructive',
         onPress: async () => {
           try {
+            // Optimistic update - immediately remove task from UI
+            setOptimisticTasks(prev => prev.filter(t => t.id !== task.id));
+            
             await deleteTask(task.id);
-            setTasks(prev => prev.filter(t => t.id !== task.id));
             setOverlayTask(null); // Close overlay after delete
             if (Platform.OS !== 'web') {
               await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             }
           } catch (e: any) {
+            // Revert optimistic update on error - add task back
+            setOptimisticTasks(prev => [...prev, task]);
             Alert.alert('Delete failed', e?.message || 'Unknown error');
           }
         },
@@ -269,24 +320,39 @@ export default function FlowboardScreen({ navigation }: { navigation: any }) {
     );
   };
 
-  // Loading
-  if (loading) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.center}>
-          <ActivityIndicator size="large" color="#8B5CF6" />
-          <Text style={styles.loadingText}>Loading gentle reminders…</Text>
-        </View>
-      </SafeAreaView>
-    );
-  }
-
-  // Error
+  // Error state
   if (error) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.center}>
           <Text style={styles.errorText}>Error: {error}</Text>
+        </View>
+        
+        {/* Bottom dock */}
+        <View style={styles.bottomDock}>
+          <TouchableOpacity
+            style={[styles.dockButton, styles.dockButtonActive]}
+            onPress={() => {}} // Already on flowboard
+          >
+            <Text style={styles.dockIcon}>🎯</Text>
+            <Text style={[styles.dockLabel, styles.dockLabelActive]}>Flowboard</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.dockButton}
+            onPress={() => navigation.navigate('Dashboard')}
+          >
+            <Text style={styles.dockIcon}>🏠</Text>
+            <Text style={styles.dockLabel}>Dashboard</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.dockButton}
+            onPress={() => navigation.navigate('ChaosCatcher')}
+          >
+            <Text style={styles.dockIcon}>🌪️</Text>
+            <Text style={styles.dockLabel}>Chaos</Text>
+          </TouchableOpacity>
         </View>
       </SafeAreaView>
     );
@@ -294,11 +360,8 @@ export default function FlowboardScreen({ navigation }: { navigation: any }) {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
+      {/* Header with + New button */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Text style={styles.backButton}>← Dashboard</Text>
-        </TouchableOpacity>
         <Text style={styles.title}>Flowboard</Text>
         <TouchableOpacity style={styles.addButton} onPress={openAddModal}>
           <Text style={styles.addButtonText}>+ New</Text>
@@ -314,7 +377,12 @@ export default function FlowboardScreen({ navigation }: { navigation: any }) {
           showsVerticalScrollIndicator={false}
           renderItem={({ item: col }) => (
             <DraxView
-              style={[styles.fullColumn, { backgroundColor: COLUMN_COLORS[col] + '0A' }]}
+              style={[
+                (col === 'Exploring' && exploringCollapsed) 
+                  ? styles.fullColumnCollapsed 
+                  : styles.fullColumn, 
+                { backgroundColor: COLUMN_COLORS[col] + '0A' }
+              ]}
               receptive
               onReceiveDragDrop={({ dragged: { payload } }: { dragged: { payload: any } }) => {
                 const taskId = (payload as any)?.taskId;
@@ -367,6 +435,33 @@ export default function FlowboardScreen({ navigation }: { navigation: any }) {
           )}
         />
       </DraxProvider>
+
+      {/* Bottom dock */}
+      <View style={styles.bottomDock}>
+        <TouchableOpacity
+          style={[styles.dockButton, styles.dockButtonActive]}
+          onPress={() => {}} // Already on flowboard
+        >
+          <Text style={styles.dockIcon}>🎯</Text>
+          <Text style={[styles.dockLabel, styles.dockLabelActive]}>Flowboard</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.dockButton}
+          onPress={() => navigation.navigate('Dashboard')}
+        >
+          <Text style={styles.dockIcon}>🏠</Text>
+          <Text style={styles.dockLabel}>Dashboard</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.dockButton}
+          onPress={() => navigation.navigate('ChaosCatcher')}
+        >
+          <Text style={styles.dockIcon}>🌪️</Text>
+          <Text style={styles.dockLabel}>Chaos</Text>
+        </TouchableOpacity>
+      </View>
 
       {/* Task Overlay Modal */}
       <Modal
@@ -453,7 +548,7 @@ export default function FlowboardScreen({ navigation }: { navigation: any }) {
                   <Text style={styles.cancelButtonText}>Cancel</Text>
                 </TouchableOpacity>
                 <TouchableOpacity onPress={submitNewTask} style={styles.addButtonModal} disabled={saving}>
-                  {saving ? <ActivityIndicator color="#fff" /> : <Text style={styles.addButtonModalText}>Add</Text>}
+                  <Text style={styles.addButtonModalText}>Add</Text>
                 </TouchableOpacity>
               </View>
             </KeyboardAvoidingView>
@@ -486,7 +581,7 @@ export default function FlowboardScreen({ navigation }: { navigation: any }) {
                   <Text style={styles.cancelButtonText}>Cancel</Text>
                 </TouchableOpacity>
                 <TouchableOpacity onPress={submitEdit} style={styles.addButtonModal} disabled={saving}>
-                  {saving ? <ActivityIndicator color="#fff" /> : <Text style={styles.addButtonModalText}>Save</Text>}
+                  <Text style={styles.addButtonModalText}>Save</Text>
                 </TouchableOpacity>
               </View>
             </KeyboardAvoidingView>
@@ -494,7 +589,7 @@ export default function FlowboardScreen({ navigation }: { navigation: any }) {
         </TouchableWithoutFeedback>
       </Modal>
 
-      <LoadingOverlay visible={loading || saving} />
+      <LoadingOverlay visible={isLoading || saving} />
       <Celebration visible={celebrate} onDone={() => setCelebrate(false)} />
     </SafeAreaView>
   );
@@ -513,23 +608,42 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#e5e7eb',
   },
-  backButton: { fontSize: 15, fontWeight: '600', color: '#6b7280' },
   title: { fontSize: 18, fontWeight: '700', color: '#111827' },
   addButton: { backgroundColor: '#10B981', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8 },
   addButtonText: { color: '#fff', fontSize: 14, fontWeight: '700' },
 
   // Center states
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  loadingText: { marginTop: 8, fontSize: 16, color: '#6b7280' },
   errorText: { color: '#ef4444', fontSize: 16 },
 
   // Board
-  board: { padding: 12 },
+  board: { padding: 12, paddingBottom: 100 }, // Add bottom padding for dock
+  compactBoard: { 
+    padding: 12, 
+    paddingBottom: 100,
+    justifyContent: 'space-between',
+    flexGrow: 1,
+  },
   fullColumn: {
     marginBottom: 16,
     borderRadius: 12,
     padding: 12,
     minHeight: 200,
+  },
+  fullColumnCollapsed: {
+    marginBottom: 16,
+    borderRadius: 12,
+    padding: 12,
+    minHeight: 80, // Smaller when explore is collapsed
+  },
+  compactColumn: {
+    marginBottom: 8,
+    borderRadius: 12,
+    padding: 12,
+    minHeight: 80,
+    maxHeight: 120,
+    justifyContent: 'center',
+    flex: 1, // Take equal space
   },
   columnHeader: { 
     flexDirection: 'row', 
@@ -538,7 +652,22 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
     zIndex: 10,
   },
+  compactColumnHeader: {
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    marginBottom: 6, 
+    paddingHorizontal: 4,
+    zIndex: 10,
+    justifyContent: 'center',
+  },
   columnTitle: { fontSize: 16, fontWeight: '700', color: '#111827', flex: 1 },
+  compactColumnTitle: { 
+    fontSize: 14, 
+    fontWeight: '700', 
+    color: '#111827', 
+    textAlign: 'center',
+    flex: 1,
+  },
   columnCount: { fontSize: 14, color: '#6b7280', fontWeight: '500' },
   columnContent: { flex: 1 },
 
@@ -556,10 +685,18 @@ const styles = StyleSheet.create({
   },
   collapsedText: {
     textAlign: 'center',
-    marginTop: 20,
+    marginTop: 8,
     fontSize: 14,
     color: '#9ca3af',
     fontStyle: 'italic',
+  },
+  dropZoneText: {
+    textAlign: 'center',
+    fontSize: 18,
+    color: '#374151',
+    fontWeight: '700',
+    marginVertical: 12,
+    letterSpacing: 0.5,
   },
 
   emptyText: { textAlign: 'center', marginTop: 40, fontSize: 14, color: '#9ca3af', fontStyle: 'italic' },
@@ -578,7 +715,16 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     elevation: 2,
   },
-  cardDragging: { opacity: 1, transform: [{ scale: 1.05 }], elevation: 10 },
+  cardDragging: { 
+    opacity: 0.9, 
+    transform: [{ scale: 1.1 }], 
+    elevation: 15,
+    zIndex: 1000,
+    shadowColor: '#000',
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 5 },
+  },
   cardTitle: { fontSize: 15, fontWeight: '600', color: '#111827', lineHeight: 20 },
   cardNotes: { fontSize: 13, color: '#374151', marginTop: 2, lineHeight: 16 },
 
@@ -592,6 +738,43 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   sandwichMenuIcon: { fontSize: 18, color: '#6b7280' },
+
+  // Bottom dock navigation
+  bottomDock: {
+    flexDirection: 'row',
+    backgroundColor: '#fff',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderTopWidth: 1,
+    borderTopColor: '#e5e7eb',
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: -2 },
+    elevation: 5,
+  },
+  dockButton: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 8,
+    borderRadius: 12,
+  },
+  dockButtonActive: {
+    backgroundColor: '#f3f4f6',
+  },
+  dockIcon: {
+    fontSize: 24,
+    marginBottom: 4,
+  },
+  dockLabel: {
+    fontSize: 12,
+    color: '#6b7280',
+    fontWeight: '500',
+  },
+  dockLabelActive: {
+    color: '#374151',
+    fontWeight: '600',
+  },
 
   // Task overlay
   overlayBackdrop: {

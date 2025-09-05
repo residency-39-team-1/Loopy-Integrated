@@ -36,11 +36,41 @@ function RootNavigator() {
     return (
       <TaskProvider>
         <Stack.Navigator screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="Dashboard" component={DashboardScreen} />
-          <Stack.Screen name="Flowboard" component={FlowboardScreen} />
-          <Stack.Screen name="ChaosCatcher" component={ChaosCatcherScreen} />
-          <Stack.Screen name="Progress" component={ProgressScreen} />
-          <Stack.Screen name="DailyReset" component={DailyResetScreen} />
+          <Stack.Screen 
+            name="Dashboard" 
+            component={DashboardScreen}
+            options={{
+              animation: 'fade',
+            }}
+          />
+          <Stack.Screen 
+            name="Flowboard" 
+            component={FlowboardScreen}
+            options={{
+              animation: 'slide_from_left',
+            }}
+          />
+          <Stack.Screen 
+            name="ChaosCatcher" 
+            component={ChaosCatcherScreen}
+            options={{
+              animation: 'slide_from_right',
+            }}
+          />
+          <Stack.Screen 
+            name="Progress" 
+            component={ProgressScreen}
+            options={{
+              animation: 'slide_from_bottom',
+            }}
+          />
+          <Stack.Screen 
+            name="DailyReset" 
+            component={DailyResetScreen}
+            options={{
+              animation: 'slide_from_bottom',
+            }}
+          />
         </Stack.Navigator>
       </TaskProvider>
     );
