@@ -4,7 +4,10 @@
     "slug": "loopy-integrated",
     "version": "1.0.0",
     "scheme": "loopy",
-    "platforms": ["ios", "android"],
+    "platforms": [
+      "ios",
+      "android"
+    ],
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "splash": {
@@ -17,15 +20,16 @@
       "**/*"
     ],
     "android": {
-      "package": "com.yourcompany.loopy",
-      "googleServicesFile": "./android/app/google-services.json"
+      "package": "loopy.productivity.app",
+      "googleServicesFile": "./google-services.json"
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.yourcompany.loopy"
+      "bundleIdentifier": "loopy.productivity.app"
     },
     "plugins": [
-      "@react-native-firebase/app"
+      "@react-native-firebase/app",
+      "expo-web-browser"
     ],
     "extra": {
       "eas": {
