@@ -1,14 +1,12 @@
 // src/contexts/AuthContext.tsx
-import React, {
-  createContext,
-  useContext,
-  useState,
-  useEffect,
-  ReactNode,
-} from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import * as WebBrowser from 'expo-web-browser';
+import * as Google from 'expo-auth-session/providers/google';
+import * as Crypto from 'expo-crypto';
 import auth, { FirebaseAuthTypes } from '@react-native-firebase/auth';
-import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
 import firestore from '@react-native-firebase/firestore';
+
+WebBrowser.maybeCompleteAuthSession(); // required for Expo-Auth-Session
 
 interface AuthContextType {
   user: FirebaseAuthTypes.User | null;
@@ -36,89 +34,71 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Configure Google Sign-In once
-  useEffect(() => {
-    GoogleSignin.configure({
-      // Prefer env var if provided; fallback to your known client ID
-      webClientId:
-        process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID ||
-        '39855210543-eqbv7f2ia13apocshc46opgtqec5sqld.apps.googleusercontent.com',
-      scopes: ['openid', 'email', 'profile'],
-      offlineAccess: false,
-      forceCodeForRefreshToken: false,
-    });
-  }, []);
+  /* ------------------------------------------------------------------ */
+  /* 1.  Build the Expo-Google request                                  */
+  /* ------------------------------------------------------------------ */
+  const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
+    clientId:
+      process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID ||
+      '39855210543-eqbv7f2ia13apocshc46opgtqec5sqld.apps.googleusercontent.com',
+    scopes: ['openid', 'email', 'profile'],
+  });
 
-  // Firebase auth state listener
+  /* ------------------------------------------------------------------ */
+  /* 2.  Handle the Expo-Google response                                */
+  /* ------------------------------------------------------------------ */
   useEffect(() => {
-    const unsubscribe = auth().onAuthStateChanged(async (firebaseUser) => {
-      setUser(firebaseUser);
-      if (firebaseUser) {
-        // upsert user profile
+    if (response?.type === 'success') {
+      const { id_token } = response.params;
+      const credential = auth.GoogleAuthProvider.credential(id_token);
+      auth()
+        .signInWithCredential(credential)
+        .catch((e) => setError(e.message));
+    } else if (response?.type === 'error') {
+      setError(response.error?.message || 'Google sign-in error');
+    }
+  }, [response]);
+
+  /* ------------------------------------------------------------------ */
+  /* 3.  Firebase state listener (unchanged)                            */
+  /* ------------------------------------------------------------------ */
+  useEffect(() => {
+    const unsub = auth().onAuthStateChanged(async (u) => {
+      setUser(u);
+      if (u) {
         await firestore()
           .collection('users')
-          .doc(firebaseUser.uid)
+          .doc(u.uid)
           .set(
             {
-              uid: firebaseUser.uid,
-              email: firebaseUser.email,
-              displayName: firebaseUser.displayName,
-              photoURL: firebaseUser.photoURL,
-              isAnonymous: firebaseUser.isAnonymous,
+              uid: u.uid,
+              email: u.email,
+              displayName: u.displayName,
+              photoURL: u.photoURL,
+              isAnonymous: u.isAnonymous,
               lastSignIn: firestore.FieldValue.serverTimestamp(),
             },
             { merge: true }
           )
-          .catch(console.error);
+          .catch(console.warn);
       }
       setIsLoading(false);
     });
-    return unsubscribe;
+    return unsub;
   }, []);
 
-  // Keep user doc fresh on user changes
-  useEffect(() => {
-    if (!user) return;
-    firestore()
-      .collection('users')
-      .doc(user.uid)
-      .set(
-        {
-          uid: user.uid,
-          email: user.email,
-          displayName: user.displayName,
-          photoURL: user.photoURL,
-          isAnonymous: user.isAnonymous,
-          lastSignIn: firestore.FieldValue.serverTimestamp(),
-        },
-        { merge: true }
-      )
-      .catch(console.error);
-  }, [user]);
-
-  // --- Public methods --------------------------------------------------------
-
+  /* ------------------------------------------------------------------ */
+  /* 4.  Public methods (same signature)                                */
+  /* ------------------------------------------------------------------ */
   const signInWithGoogle = async () => {
     try {
       setError(null);
       setIsLoading(true);
-
-      await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
-
-      // ✅ Correct: idToken is returned directly (no `data` wrapper)
-      const { idToken } = await GoogleSignin.signIn();
-      if (!idToken) throw new Error('No ID token received');
-
-      const credential = auth.GoogleAuthProvider.credential(idToken);
-      await auth().signInWithCredential(credential);
-
-      console.log('✅ Google sign-in complete');
+      if (!request) throw new Error('Google request not loaded');
+      const result = await promptAsync();
+      if (result.type !== 'success') throw new Error('Cancelled');
     } catch (err: any) {
-      const code = err?.code || err?.statusCode;
-      if (code === statusCodes.SIGN_IN_CANCELLED) setError('Cancelled');
-      else if (code === statusCodes.IN_PROGRESS) setError('Sign-in already in progress');
-      else if (code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) setError('Google Play Services not available');
-      else setError(err?.message || 'Google sign-in failed');
+      setError(err.message);
     } finally {
       setIsLoading(false);
     }
@@ -130,7 +110,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setIsLoading(true);
       await auth().signInAnonymously();
     } catch (err: any) {
-      setError(err?.message || 'Guest sign-in failed');
+      setError(err.message);
     } finally {
       setIsLoading(false);
     }
@@ -139,31 +119,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const signOut = async () => {
     try {
       setError(null);
-      const current = auth().currentUser;
-      if (current && !current.isAnonymous) {
-        try {
-          await GoogleSignin.signOut();
-        } catch {
-          /* ignore */
-        }
-      }
       await auth().signOut();
     } catch (err: any) {
-      setError(err?.message || 'Sign-out failed');
+      setError(err.message);
     }
   };
 
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        isLoading,
-        signInWithGoogle,
-        signInAsGuest,
-        signOut,
-        error,
-      }}
-    >
+    <AuthContext.Provider value={{ user, isLoading, signInWithGoogle, signInAsGuest, signOut, error }}>
       {children}
     </AuthContext.Provider>
   );

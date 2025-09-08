@@ -1,14 +1,36 @@
 // src/services/api.ts
 import auth from '@react-native-firebase/auth';
+import { Platform } from 'react-native';
 
-const API_BASE =
-  process.env.EXPO_PUBLIC_API_BASE?.replace(/\/+$/, '') ||
-  'http://192.168.1.219:5001'; // Your PC IP - works for real device demos
+// Determine API base URL based on platform
+const getApiBase = () => {
+  const envBase = process.env.EXPO_PUBLIC_API_BASE;
+  
+  if (envBase) {
+    return envBase.replace(/\/+$/, '');
+  }
+  
+  // Default fallbacks based on platform
+  if (Platform.OS === 'web') {
+    return 'http://127.0.0.1:5001';
+  } else if (Platform.OS === 'android') {
+    // For Android emulator use 10.0.2.2
+    // For physical device, this should be your PC's IP
+    return 'http://10.0.2.2:5001';
+  } else {
+    // iOS simulator can use localhost
+    return 'http://127.0.0.1:5001';
+  }
+};
+
+const API_BASE = getApiBase();
 
 async function getIdToken(): Promise<string> {
   const user = auth().currentUser;
   if (!user) throw new Error('Not authenticated');
   const token = await user.getIdToken(); // Remove forceRefresh to use cached token
+  console.log('🔐 Token obtained for user:', user.email || user.uid);
+  console.log('📍 API_BASE:', API_BASE);
   return token;
 }
 
@@ -19,7 +41,11 @@ async function apiFetch(path: string, options: RequestInit = {}) {
     Authorization: `Bearer ${token}`,
     ...(options.headers || {}),
   };
-  const res = await fetch(`${API_BASE}${path}`, { ...options, headers });
+  
+  const fullUrl = `${API_BASE}${path}`;
+  console.log('🌐 Fetching:', fullUrl);
+  
+  const res = await fetch(fullUrl, { ...options, headers });
   const text = await res.text();
   let json: any;
   try {
@@ -29,6 +55,12 @@ async function apiFetch(path: string, options: RequestInit = {}) {
   }
   if (!res.ok) {
     const msg = (json && (json.error || json.message)) || res.statusText;
+    console.error('❌ API Error:', {
+      status: res.status,
+      message: msg,
+      url: fullUrl,
+      response: json
+    });
     throw new Error(`${res.status} ${msg}`);
   }
   return json;
