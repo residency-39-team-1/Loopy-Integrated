@@ -1,8 +1,5 @@
-// frontend/src/screens/LoginScreen.tsx
-
-// Git test: Tevin was here
-
-import React, { useEffect, useState } from 'react';
+// src/screens/LoginScreen.tsx
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -20,41 +17,42 @@ export default function LoginScreen() {
   const [localLoading, setLocalLoading] = useState(false);
   const [userMetadata, setUserMetadata] = useState<any>(null);
 
+  /* ---------- Google sign-in (native picker) ---------- */
   const handleGoogleSignIn = async () => {
     setLocalLoading(true);
     try {
-      await signInWithGoogle();
-    } catch (err) {
+      await signInWithGoogle();          // ← native, no promptAsync
+    } catch (err: any) {
       console.error('Error in handleGoogleSignIn:', err);
-      Alert.alert('Sign In Failed', 'Unable to sign in with Google. Please try again.');
+      Alert.alert('Sign In Failed', err.message || 'Unable to sign in with Google.');
     } finally {
       setLocalLoading(false);
     }
   };
 
+  /* ---------- Guest sign-in ---------- */
   const handleGuestSignIn = async () => {
     setLocalLoading(true);
     try {
       await signInAsGuest();
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error in handleGuestSignIn:', err);
-      Alert.alert('Sign In Failed', 'Unable to sign in as guest. Please try again.');
+      Alert.alert('Sign In Failed', 'Unable to sign in as guest.');
     } finally {
       setLocalLoading(false);
     }
   };
 
-  // Optional: user metadata snapshot
-  useEffect(() => {
+  /* ---------- Optional: listen to user doc ---------- */
+  React.useEffect(() => {
     if (!user?.uid) return;
-    const unsubscribe = firestore()
+    return firestore()
       .collection('users')
       .doc(user.uid)
       .onSnapshot(
-        doc => doc.exists && setUserMetadata(doc.data()),
-        err => console.error('Failed to fetch user metadata:', err)
+        (doc) => doc.exists && setUserMetadata(doc.data()),
+        (err) => console.error('Failed to fetch user metadata:', err)
       );
-    return () => unsubscribe();
   }, [user]);
 
   if (isLoading) {
@@ -76,7 +74,7 @@ export default function LoginScreen() {
 
         <View style={styles.buttonContainer}>
           <TouchableOpacity
-            style={[styles.button, styles.googleButton, (localLoading) && styles.disabledButton]}
+            style={[styles.button, styles.googleButton, localLoading && styles.disabledButton]}
             onPress={handleGoogleSignIn}
             disabled={localLoading}
           >
@@ -88,7 +86,7 @@ export default function LoginScreen() {
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.button, styles.guestButton, (localLoading) && styles.disabledButton]}
+            style={[styles.button, styles.guestButton, localLoading && styles.disabledButton]}
             onPress={handleGuestSignIn}
             disabled={localLoading}
           >
@@ -100,11 +98,11 @@ export default function LoginScreen() {
           </TouchableOpacity>
         </View>
 
-        {error ? (
+        {error && (
           <View style={styles.errorContainer}>
             <Text style={styles.errorText}>{error}</Text>
           </View>
-        ) : null}
+        )}
 
         <Text style={styles.disclaimer}>
           By signing in, you agree to our Terms of Service and Privacy Policy
@@ -114,6 +112,7 @@ export default function LoginScreen() {
   );
 }
 
+/* ---------- styles ---------- */
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f5f5f5' },
   content: { flex: 1, justifyContent: 'center', paddingHorizontal: 20 },
@@ -124,9 +123,17 @@ const styles = StyleSheet.create({
   subtitle: { fontSize: 16, color: '#666', marginTop: 10, textAlign: 'center' },
   buttonContainer: { gap: 16 },
   button: {
-    paddingVertical: 16, paddingHorizontal: 24, borderRadius: 8, alignItems: 'center',
-    elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1, shadowRadius: 4, minHeight: 56, justifyContent: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+    alignItems: 'center',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    minHeight: 56,
+    justifyContent: 'center',
   },
   googleButton: { backgroundColor: '#4285F4' },
   googleButtonText: { color: '#fff', fontSize: 16, fontWeight: '600' },

@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useContext, useMemo, useEffect } from 'react';
 import {
   View,
   Text,
@@ -60,7 +60,7 @@ export const DragContext = React.createContext<DragCtx>({
 /* TaskCard – draggable with drop detection                           */
 /* ------------------------------------------------------------------ */
 export function TaskCard({ item, onDragEnd }: { item: any; onDragEnd: (target: any) => void }) {
-  const { setTaskId, startAutoScroll, stopAutoScroll, taskId } = React.useContext(DragContext);
+  const { setTaskId, startAutoScroll, stopAutoScroll, taskId } = useContext(DragContext);
   const scale = useSharedValue(1);
   const translateX = useSharedValue(0);
   const translateY = useSharedValue(0);
@@ -69,10 +69,10 @@ export function TaskCard({ item, onDragEnd }: { item: any; onDragEnd: (target: a
   const startY = useSharedValue(0);
   const [pendingDrop, setPendingDrop] = useState<{ x: number; y: number } | null>(null);
 
-  const { checkDropZone } = React.useContext(DragContext);
+  const { checkDropZone } = useContext(DragContext);
 
   // Get screen dimensions once (can't use Dimensions in worklet)
-  const screenDimensions = React.useMemo(() => {
+  const screenDimensions = useMemo(() => {
     try {
       const { height } = Dimensions.get('window');
       return {
@@ -93,7 +93,7 @@ export function TaskCard({ item, onDragEnd }: { item: any; onDragEnd: (target: a
   const { height: screenHeight, autoScrollZone, autoScrollSpeedZone } = screenDimensions;
 
   // Handle drop zone checking after gesture ends
-  React.useEffect(() => {
+  useEffect(() => {
     if (pendingDrop) {
       try {
         const targetState = checkDropZone(pendingDrop.x, pendingDrop.y);
@@ -109,14 +109,14 @@ export function TaskCard({ item, onDragEnd }: { item: any; onDragEnd: (target: a
   }, [pendingDrop, checkDropZone, onDragEnd, item.state]);
 
   // Cleanup auto-scroll on unmount
-  React.useEffect(() => {
+  useEffect(() => {
     return () => {
       stopAutoScroll();
     };
   }, [stopAutoScroll]);
 
   // Failsafe: stop auto-scroll if dragging ends unexpectedly
-  React.useEffect(() => {
+  useEffect(() => {
     if (!taskId) {
       stopAutoScroll();
     }
@@ -220,11 +220,11 @@ export function Column({
   children: React.ReactNode;
   onReceive: (taskId: string) => void;
 }) {
-  const { taskId, registerDropZone, unregisterDropZone } = React.useContext(DragContext);
+  const { taskId, registerDropZone, unregisterDropZone } = useContext(DragContext);
   const viewRef = useRef<View>(null);
 
   // Register this column as a drop zone
-  React.useEffect(() => {
+  useEffect(() => {
     const measureDropZone = () => {
       if (viewRef.current) {
         viewRef.current.measure((x, y, width, height, pageX, pageY) => {
