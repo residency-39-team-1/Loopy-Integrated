@@ -29,12 +29,14 @@
     },
     "plugins": [
       "@react-native-firebase/app",
-      "expo-web-browser"
+      "@react-native-google-signin/google-signin",
+      "expo-router"
     ],
     "extra": {
       "eas": {
         "projectId": "replace-this-with-your-eas-project-id"
       }
-    }
+    },
+    "sdkVersion": "53.0.0"
   }
 }

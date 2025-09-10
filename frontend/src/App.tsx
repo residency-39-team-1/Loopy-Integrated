@@ -18,6 +18,15 @@ import FlowboardScreen from './screens/FlowboardScreen';
 import ChaosCatcherScreen from './screens/ChaosCatcherScreen';
 import ProgressScreen from './screens/ProgressScreen';
 import ArchiveScreen from './screens/ArchiveScreen';
+// Sanity-check React 19 runtime
+
+import { useMemo } from 'react';
+function SanityCheck() {
+  const n = useMemo(() => Math.random(), []);
+  console.log('✅ useMemo returned:', n);   // numeric = hooks work
+  return null;
+}
+
 
 const Stack = createNativeStackNavigator();
 

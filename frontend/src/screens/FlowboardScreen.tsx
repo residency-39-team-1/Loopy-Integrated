@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef, useCallback } from 'react';
+import React, { useState, useMemo, useRef, useCallback, useContext, useEffect } from 'react';
 import { SafeAreaView, View, Text, Alert, FlatList, TouchableOpacity, Platform } from 'react-native';
 import { useTasks } from '../contexts/TaskContext';
 import { createTask, updateTask, deleteTask, type BackendTask } from '../services/api';
@@ -158,7 +158,7 @@ export default function FlowboardScreen({ navigation }: { navigation: any }) {
   }, []);
 
   // Cleanup auto-scroll on unmount
-  React.useEffect(() => {
+  useEffect(() => {
     return () => {
       stopAutoScroll();
     };
