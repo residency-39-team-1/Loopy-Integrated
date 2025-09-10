@@ -1,0 +1,239 @@
+{
+  "info": {
+    "name": "Loopy CRUD API",
+    "_postman_id": "loopy-crud-api-collection",
+    "description": "Master Postman collection for all Loopy CRUD endpoints (Chaos Catcher, Tasks, Users, Archive, Bootstrap, Dopamine Plant, Dopamine Logs).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Chaos Catcher",
+      "item": [
+        {
+          "name": "Create Chaos Entry",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{authToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{baseUrl}}/chaos",
+            "body": { "mode": "raw", "raw": "{\n  \"user_id\": \"UID123\",\n  \"text\": \"quick capture note\"\n}" }
+          }
+        },
+        {
+          "name": "List Chaos Entries",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{authToken}}" }
+            ],
+            "url": "{{baseUrl}}/chaos?user_id=UID123"
+          }
+        },
+        {
+          "name": "Delete Chaos Entry",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{authToken}}" }
+            ],
+            "url": "{{baseUrl}}/chaos/CHAOS_ID"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Tasks",
+      "item": [
+        {
+          "name": "Create Task",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{authToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{baseUrl}}/tasks",
+            "body": { "mode": "raw", "raw": "{\n  \"user_id\": \"UID123\",\n  \"title\": \"Do homework\",\n  \"status\": \"open\"\n}" }
+          }
+        },
+        {
+          "name": "Get Tasks",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }],
+            "url": "{{baseUrl}}/tasks?user_id=UID123"
+          }
+        },
+        {
+          "name": "Update Task",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{authToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{baseUrl}}/tasks/TASK_ID",
+            "body": { "mode": "raw", "raw": "{\n  \"status\": \"done\"\n}" }
+          }
+        },
+        {
+          "name": "Delete Task",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }],
+            "url": "{{baseUrl}}/tasks/TASK_ID"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Users",
+      "item": [
+        {
+          "name": "Create User",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{baseUrl}}/users",
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"test@example.com\",\n  \"display_name\": \"Jacob\"\n}" }
+          }
+        },
+        {
+          "name": "Get User",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/users/UID123"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Archive",
+      "item": [
+        {
+          "name": "List Archived Entries",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/archived?user_id=UID123"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Bootstrap",
+      "item": [
+        {
+          "name": "Guest Import",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/bootstrap/import",
+            "body": { "mode": "raw", "raw": "{\n  \"guest_data\": {...}\n}" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Dopamine Plant",
+      "item": [
+        {
+          "name": "Init Plant",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{authToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{baseUrl}}/dopamine/init",
+            "body": { "mode": "raw", "raw": "{\n  \"user_id\": \"UID123\"\n}" }
+          }
+        },
+        {
+          "name": "Get Plant State",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }],
+            "url": "{{baseUrl}}/dopamine/state?user_id=UID123"
+          }
+        },
+        {
+          "name": "Task Complete (Advance Plant)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{authToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{baseUrl}}/dopamine/task-complete",
+            "body": { "mode": "raw", "raw": "{\n  \"user_id\": \"UID123\",\n  \"task_id\": \"TASK123\",\n  \"points\": 1\n}" }
+          }
+        },
+        {
+          "name": "Reset Plant",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{authToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{baseUrl}}/dopamine/reset",
+            "body": { "mode": "raw", "raw": "{\n  \"user_id\": \"UID123\",\n  \"reason\": \"user_requested\"\n}" }
+          }
+        },
+        {
+          "name": "Delete Plant",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }],
+            "url": "{{baseUrl}}/dopamine/delete?user_id=UID123"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Dopamine Logs",
+      "item": [
+        {
+          "name": "Create Log",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{authToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{baseUrl}}/dopamine-logs",
+            "body": { "mode": "raw", "raw": "{\n  \"points\": 1,\n  \"source\": \"task_completed\",\n  \"context\": {\"taskId\": \"TASK123\"},\n  \"note\": \"Earned dopamine point\"\n}" }
+          }
+        },
+        {
+          "name": "Get Log",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }],
+            "url": "{{baseUrl}}/dopamine-logs/LOG_ID"
+          }
+        },
+        {
+          "name": "List Logs",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }],
+            "url": "{{baseUrl}}/dopamine-logs?limit=50"
+          }
+        },
+        {
+          "name": "Summary Logs",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }],
+            "url": "{{baseUrl}}/dopamine-logs/summary?window=day"
+          }
+        }
+      ]
+    }
+  ]
+}

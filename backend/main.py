@@ -15,7 +15,7 @@ from backend import client  # noqa: F401
 from backend.crud.tasks import bp as tasks_bp
 from backend.crud.archived import bp as archive_bp
 from backend.crud.users import bp as users_bp
-from backend.crud.dopamine_logs import bp as dopamine_bp
+from backend.crud.dopamine_logs import bp as dopamine_logs_bp
 from backend.crud.bootstrap import bp as bootstrap_bp
 
   
@@ -83,7 +83,7 @@ def create_app() -> Flask:
     app.register_blueprint(tasks_bp)
     app.register_blueprint(archive_bp)
     app.register_blueprint(users_bp)
-    app.register_blueprint(dopamine_bp)
+    app.register_blueprint(dopamine_logs_bp)
     app.register_blueprint(bootstrap_bp)
 
 
