@@ -47,6 +47,7 @@ export type BackendTask = {
   state: 'Exploring' | 'Planning' | 'Doing' | 'Done';
   createdAt?: any;
   updatedAt?: any;
+  isArchived: boolean;
 };
 
 // ---- Tasks API ----
@@ -84,7 +85,7 @@ export async function createTask(body: {
 
 export async function updateTask(
   id: string,
-  updates: Partial<Pick<BackendTask, 'title' | 'state' | 'notes' | 'priority' | 'dueDate'>>
+  updates: Partial<Pick<BackendTask, 'title' | 'state' | 'notes' | 'priority' | 'dueDate' | 'isArchived'>>
 ): Promise<BackendTask> {
   return apiFetch(`/tasks/${id}`, {
     method: 'PATCH',

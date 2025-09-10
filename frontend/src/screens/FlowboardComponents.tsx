@@ -123,9 +123,9 @@ export function TaskCard({ item, onDragEnd }: { item: any; onDragEnd: (target: a
   }, [taskId, stopAutoScroll]);
 
   const drag = Gesture.Pan()
-    .minDistance(10) // Require minimum drag distance
+    .minDistance(5) // Reduced from 10 to be more responsive
     .maxPointers(1) // Only allow single finger drag
-    .shouldCancelWhenOutside(true)
+    .shouldCancelWhenOutside(false) // Don't cancel when dragging outside
     .onStart((event) => {
       'worklet';
       scale.value = 1.08;

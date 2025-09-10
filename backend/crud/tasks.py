@@ -61,6 +61,7 @@ def create_task(uid: str, data: Dict[str, Any]) -> Dict[str, Any]:
         "priority": data.get("priority"),       # number or enum per UI
         "dueDate": data.get("dueDate"),         # ISO string or timestamp from client
         "state": state,
+        "isArchived": data.get("isArchived", False),  # default to not archived
         "createdAt": SERVER_TS,                 # type: ignore
         "updatedAt": SERVER_TS,                 # type: ignore
     }
@@ -101,7 +102,7 @@ def update_task(uid: str, task_id: str, updates: Dict[str, Any]) -> Optional[Dic
             raise ValueError(f"state must be one of {sorted(ALLOWED_STATES)}")
         write["state"] = state
 
-    for k in ("notes", "priority", "dueDate"):
+    for k in ("notes", "priority", "dueDate", "isArchived"):
         if k in updates:
             write[k] = updates.get(k)
 

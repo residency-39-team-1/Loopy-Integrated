@@ -1,7 +1,9 @@
 import React, { useState, useMemo, useRef, useCallback, useContext, useEffect } from 'react';
 import { SafeAreaView, View, Text, Alert, FlatList, TouchableOpacity, Platform } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { useTasks } from '../contexts/TaskContext';
 import { createTask, updateTask, deleteTask, type BackendTask } from '../services/api';
+import * as ArchiveService from '../services/archive';
 import LoadingOverlay from '../components/LoadingOverlay';
 import Celebration from '../components/Celebration';
 import { type TaskState } from '../types/task';
@@ -65,6 +67,14 @@ type UITask = {
 /* ------------------------------------------------------------------ */
 export default function FlowboardScreen({ navigation }: { navigation: any }) {
   const { tasks: contextTasks, isLoading, error, refresh } = useTasks();
+  
+  // Refresh tasks when screen comes into focus (e.g., returning from archive)
+  useFocusEffect(
+    useCallback(() => {
+      refresh();
+    }, [refresh])
+  );
+  
   const [optimisticTasks, setOptimisticTasks] = useState<UITask[]>([]);
   const [celebrate, setCelebrate] = useState(false);
   const [overlayTask, setOverlayTask] = useState<UITask | null>(null);
@@ -174,12 +184,14 @@ export default function FlowboardScreen({ navigation }: { navigation: any }) {
 
   /* ---------- derived data ---------- */
   const tasks = useMemo(() => {
-    const mapped: UITask[] = contextTasks.map((t) => ({
-      id: t.id,
-      title: t.title ?? '',
-      notes: t.notes,
-      state: toUIState(t.state),
-    }));
+    const mapped: UITask[] = contextTasks
+      .filter(t => !t.isArchived) // Filter out archived tasks
+      .map((t) => ({
+        id: t.id,
+        title: t.title ?? '',
+        notes: t.notes,
+        state: toUIState(t.state),
+      }));
     if (optimisticTasks.length === 0 && mapped.length > 0) {
       setOptimisticTasks(mapped);
       return mapped;
@@ -304,12 +316,15 @@ export default function FlowboardScreen({ navigation }: { navigation: any }) {
         onPress: async () => {
           try {
             setOptimisticTasks((prev) => prev.filter((t) => t.id !== task.id));
-            await deleteTask(task.id);
+            
+            // Archive by setting isArchived flag instead of deleting
+            await updateTask(task.id, { isArchived: true });
+            
             setOverlayTask(null);
             await haptic('light');
           } catch (e: any) {
             setOptimisticTasks((prev) => [...prev, task]);
-            Alert.alert('Delete failed', e?.message || 'Unknown error');
+            Alert.alert('Archive failed', e?.message || 'Unknown error');
           }
         },
       },
@@ -348,7 +363,12 @@ export default function FlowboardScreen({ navigation }: { navigation: any }) {
             try {
               setBulkLoading(true);
               setOptimisticTasks((prev) => prev.filter((t) => !toArchive.find((a) => a.id === t.id)));
-              await Promise.all(toArchive.map((t) => deleteTask(t.id)));
+              
+              // Archive by setting isArchived flag instead of deleting
+              await Promise.all(toArchive.map(task => 
+                updateTask(task.id, { isArchived: true })
+              ));
+              
               await refresh();
               await haptic('medium');
             } catch (error: any) {

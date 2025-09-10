@@ -9,19 +9,12 @@ import {
   StyleSheet,
   Alert,
 } from 'react-native';
+import { listTasks, updateTask, deleteTask, BackendTask } from '../services/api';
 
-// Placeholder types - update these based on your actual archive API
-type ArchivedItem = {
-  id: string;
-  title: string;
-  notes?: string;
-  originalType: 'task' | 'chaos';
-  archivedAt: string;
-  originalData: any;
-};
+type ArchivedTask = BackendTask;
 
 export default function ArchiveScreen({ navigation }: { navigation: any }) {
-  const [archivedItems, setArchivedItems] = useState<ArchivedItem[]>([]);
+  const [archivedItems, setArchivedItems] = useState<ArchivedTask[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -31,46 +24,43 @@ export default function ArchiveScreen({ navigation }: { navigation: any }) {
   const loadArchivedItems = async () => {
     try {
       setIsLoading(true);
-      // TODO: Call your archive API
-      // const items = await archiveService.list();
-      // setArchivedItems(items);
-      
-      // Placeholder data for now
-      setArchivedItems([
-        {
-          id: '1',
-          title: 'Example Archived Task',
-          notes: 'This was completed and archived',
-          originalType: 'task',
-          archivedAt: new Date().toISOString(),
-          originalData: { state: 'Done' }
-        }
-      ]);
+      // Get all tasks and filter for archived ones
+      const allTasks = await listTasks();
+      const archived = allTasks.filter(task => task.isArchived);
+      setArchivedItems(archived);
     } catch (error) {
+      console.error('Failed to load archived items:', error);
       Alert.alert('Error', 'Failed to load archived items');
     } finally {
       setIsLoading(false);
     }
   };
 
-  const restoreItem = async (item: ArchivedItem) => {
+  const restoreItem = async (item: ArchivedTask) => {
     Alert.alert(
       'Restore Item',
-      `Restore "${item.title}" back to your active ${item.originalType}s?`,
+      `Restore "${item.title}" back to your active tasks?`,
       [
         { text: 'Cancel', style: 'cancel' },
         { 
           text: 'Restore', 
           onPress: async () => {
             try {
-              // TODO: Call your restore API
-              // await archiveService.restore(item.id);
+              // Restore by setting isArchived to false
+              await updateTask(item.id, { isArchived: false });
               
               // Remove from archive list
               setArchivedItems(prev => prev.filter(i => i.id !== item.id));
               
-              Alert.alert('Success', `${item.title} has been restored!`);
+              // Navigate back to trigger tasks refresh
+              navigation.goBack();
+              
+              // Show success after navigating back
+              setTimeout(() => {
+                Alert.alert('Success', `${item.title} has been restored!`);
+              }, 500);
             } catch (error) {
+              console.error('Failed to restore item:', error);
               Alert.alert('Error', 'Failed to restore item');
             }
           }
@@ -79,7 +69,7 @@ export default function ArchiveScreen({ navigation }: { navigation: any }) {
     );
   };
 
-  const permanentlyDelete = async (item: ArchivedItem) => {
+  const permanentlyDelete = async (item: ArchivedTask) => {
     Alert.alert(
       'Permanently Delete',
       `This will permanently delete "${item.title}". This cannot be undone.`,
@@ -90,14 +80,15 @@ export default function ArchiveScreen({ navigation }: { navigation: any }) {
           style: 'destructive',
           onPress: async () => {
             try {
-              // TODO: Call your permanent delete API
-              // await archiveService.permanentDelete(item.id);
+              // Actually delete the task permanently
+              await deleteTask(item.id);
               
               // Remove from archive list
               setArchivedItems(prev => prev.filter(i => i.id !== item.id));
               
               Alert.alert('Deleted', 'Item has been permanently deleted');
             } catch (error) {
+              console.error('Failed to delete item:', error);
               Alert.alert('Error', 'Failed to delete item');
             }
           }
@@ -106,38 +97,40 @@ export default function ArchiveScreen({ navigation }: { navigation: any }) {
     );
   };
 
-  const renderArchivedItem = ({ item }: { item: ArchivedItem }) => (
-    <View style={styles.itemCard}>
-      <View style={styles.itemHeader}>
-        <Text style={styles.itemTitle}>{item.title}</Text>
-        <Text style={styles.itemType}>{item.originalType}</Text>
-      </View>
-      
-      {item.notes && (
-        <Text style={styles.itemNotes}>{item.notes}</Text>
-      )}
-      
-      <Text style={styles.itemDate}>
-        Archived: {new Date(item.archivedAt).toLocaleDateString()}
-      </Text>
-      
-      <View style={styles.itemActions}>
-        <TouchableOpacity 
-          style={styles.restoreButton}
-          onPress={() => restoreItem(item)}
-        >
-          <Text style={styles.restoreButtonText}>Restore</Text>
-        </TouchableOpacity>
+  const renderArchivedItem = ({ item }: { item: ArchivedTask }) => {
+    return (
+      <View style={styles.itemCard}>
+        <View style={styles.itemHeader}>
+          <Text style={styles.itemTitle}>{item.title}</Text>
+          <Text style={styles.itemType}>task</Text>
+        </View>
         
-        <TouchableOpacity 
-          style={styles.deleteButton}
-          onPress={() => permanentlyDelete(item)}
-        >
-          <Text style={styles.deleteButtonText}>Delete Forever</Text>
-        </TouchableOpacity>
+        {item.notes && (
+          <Text style={styles.itemNotes}>{item.notes}</Text>
+        )}
+        
+        <Text style={styles.itemDate}>
+          Archived: {new Date(item.updatedAt).toLocaleDateString()}
+        </Text>
+        
+        <View style={styles.itemActions}>
+          <TouchableOpacity 
+            style={styles.restoreButton}
+            onPress={() => restoreItem(item)}
+          >
+            <Text style={styles.restoreButtonText}>Restore</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={styles.deleteButton}
+            onPress={() => permanentlyDelete(item)}
+          >
+            <Text style={styles.deleteButtonText}>Delete Forever</Text>
+          </TouchableOpacity>
+        </View>
       </View>
-    </View>
-  );
+    );
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -285,6 +278,12 @@ const styles = StyleSheet.create({
   itemDate: {
     fontSize: 12,
     color: '#9ca3af',
+    marginBottom: 8,
+  },
+  restoreCount: {
+    fontSize: 12,
+    color: '#059669',
+    fontWeight: '500',
     marginBottom: 12,
   },
   itemActions: {
