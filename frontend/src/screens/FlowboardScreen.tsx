@@ -4,6 +4,8 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useTasks } from '../contexts/TaskContext';
 import { createTask, updateTask, deleteTask, type BackendTask } from '../services/api';
 import * as ArchiveService from '../services/archive';
+import { trackTaskCompletion } from '../services/dopamine';
+import { useAuth } from '../contexts/AuthContext';
 import LoadingOverlay from '../components/LoadingOverlay';
 import Celebration from '../components/Celebration';
 import { type TaskState } from '../types/task';
@@ -67,6 +69,7 @@ type UITask = {
 /* ------------------------------------------------------------------ */
 export default function FlowboardScreen({ navigation }: { navigation: any }) {
   const { tasks: contextTasks, isLoading, error, refresh } = useTasks();
+  const { user } = useAuth();
   
   // Refresh tasks when screen comes into focus (e.g., returning from archive)
   useFocusEffect(
@@ -238,7 +241,13 @@ export default function FlowboardScreen({ navigation }: { navigation: any }) {
       try {
         await updateTask(taskId, { state: toBackendState(target) });
         await haptic('light');
-        if (target === 'Complete') setCelebrate(true);
+        if (target === 'Complete') {
+          setCelebrate(true);
+          // Track task completion for dopamine/plant system
+          if (user?.uid) {
+            trackTaskCompletion(user.uid, taskId).catch(console.error);
+          }
+        }
       } catch (e: any) {
         setOptimisticTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, state: originalTask.state } : t)));
         await haptic('error');
@@ -341,7 +350,15 @@ export default function FlowboardScreen({ navigation }: { navigation: any }) {
       await Promise.all(toMove.map((t) => updateTask(t.id, { state: toBackendState(toState) })));
       await refresh();
       await haptic('medium');
-      if (toState === 'Complete') setCelebrate(true);
+      if (toState === 'Complete') {
+        setCelebrate(true);
+        // Track bulk task completions for dopamine/plant system
+        if (user?.uid) {
+          Promise.all(
+            toMove.map(task => trackTaskCompletion(user.uid!, task.id))
+          ).catch(console.error);
+        }
+      }
     } catch (error: any) {
       setOptimisticTasks((prev) => prev.map((t) => (toMove.find((m) => m.id === t.id) ? { ...t, state: fromState } : t)));
       Alert.alert('Bulk move failed', error?.message || 'Failed to move tasks');

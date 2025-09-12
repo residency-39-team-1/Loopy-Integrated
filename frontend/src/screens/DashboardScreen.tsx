@@ -35,10 +35,16 @@ export default function DashboardScreen({ navigation }: { navigation: any }) {
         </Text>
       </View>
 
-      {/* Middle section - reserved for gamification */}
+      {/* Middle section - Progress/Plant */}
       <View style={styles.middleSection}>
-        <Text style={styles.placeholder}>✨ Coming soon ✨</Text>
-        <Text style={styles.placeholderSubtext}>Your progress and achievements will appear here</Text>
+        <TouchableOpacity
+          style={styles.progressCard}
+          onPress={() => navigation.navigate('Progress')}
+        >
+          <Text style={styles.progressIcon}>🌱</Text>
+          <Text style={styles.progressTitle}>Your Progress</Text>
+          <Text style={styles.progressSubtext}>Track your plant growth and achievements</Text>
+        </TouchableOpacity>
       </View>
 
       {/* Bottom navigation dock */}
@@ -155,24 +161,42 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
 
-  // Middle section for gamification
+  // Middle section for progress
   middleSection: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 40,
+    paddingHorizontal: 20,
   },
-  placeholder: {
-    fontSize: 24,
-    color: '#9ca3af',
+  progressCard: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 32,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 3,
+    width: '100%',
+    maxWidth: 300,
+  },
+  progressIcon: {
+    fontSize: 48,
+    marginBottom: 16,
+  },
+  progressTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#333',
     marginBottom: 8,
     textAlign: 'center',
   },
-  placeholderSubtext: {
-    fontSize: 16,
-    color: '#d1d5db',
+  progressSubtext: {
+    fontSize: 14,
+    color: '#6b7280',
     textAlign: 'center',
-    lineHeight: 22,
+    lineHeight: 20,
   },
 
   // Bottom dock navigation
