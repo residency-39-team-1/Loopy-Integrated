@@ -26,7 +26,12 @@ import Animated,
   useDerivedValue,
 } from 'react-native-reanimated';
 import styles from './FlowboardScreen.styles';
+import LoadingOverlay from '../components/LoadingOverlay';
 
+// Use this in your main FlowboardScreen component
+export function FlowboardLoadingOverlay({ loading }: { loading: boolean }) {
+  return <LoadingOverlay visible={loading} />;
+}
 const COLUMN_COLORS = {
   Exploring: '#8B5CF6',
   Active:    '#3B82F6',

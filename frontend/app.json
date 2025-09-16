@@ -21,14 +21,13 @@
     ],
     "android": {
       "package": "loopy.productivity.app",
-      "googleServicesFile": "./google-services.json"
+      "googleServicesFile": "./android/app/google-services.json"
     },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "loopy.productivity.app"
     },
     "plugins": [
-      "@react-native-firebase/app",
       "@react-native-google-signin/google-signin",
       "expo-router"
     ],

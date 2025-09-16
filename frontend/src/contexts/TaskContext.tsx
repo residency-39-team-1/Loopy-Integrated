@@ -30,7 +30,12 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [error, setError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
-    if (!user) return;
+    if (!user) {
+      setIsLoading(false);
+      setError('No user found. Cannot load tasks.');
+      console.warn('[TaskProvider] No user found. Skipping refresh.');
+      return;
+    }
     setIsLoading(true);
     setError(null);
     try {
@@ -38,10 +43,14 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setTasks(data);
     } catch (e: any) {
       setError(e?.message ?? 'Failed to load tasks');
+      console.error('[TaskProvider] Failed to load tasks:', e);
     } finally {
       setIsLoading(false);
+      if (isLoading) {
+        console.warn('[TaskProvider] isLoading stuck true after refresh.');
+      }
     }
-  }, [user]);
+  }, [user, isLoading]);
 
   const addTask = useCallback(
     async (title: string, opts?: Partial<Omit<Task, 'id' | 'userId' | 'title'>>) => {
