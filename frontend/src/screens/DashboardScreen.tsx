@@ -1,5 +1,6 @@
 // src/screens/DashboardScreen.tsx
 import React, { useState } from 'react';
+import LoadingOverlay from '../components/LoadingOverlay';
 import {
   SafeAreaView,
   View,
@@ -14,9 +15,11 @@ import { useAuth } from '../contexts/AuthContext';
 export default function DashboardScreen({ navigation }: { navigation: any }) {
   const { user, signOut } = useAuth();
   const [settingsVisible, setSettingsVisible] = useState(false);
+  const [loading, setLoading] = useState(false); // Future async actions
 
   return (
     <SafeAreaView style={styles.container}>
+      <LoadingOverlay visible={loading} />
       {/* Header with Loopy title and settings */}
       <View style={styles.header}>
         <Text style={styles.loopyTitle}>Loopy</Text>

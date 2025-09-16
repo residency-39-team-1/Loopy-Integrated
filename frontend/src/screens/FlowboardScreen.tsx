@@ -519,7 +519,7 @@ export default function FlowboardScreen({ navigation }: { navigation: any }) {
           saving={saving}
         />
 
-        <LoadingOverlay visible={isLoading || saving || bulkLoading} />
+  <LoadingOverlay visible={isLoading || saving || bulkLoading} />
         <Celebration visible={celebrate} onDone={() => setCelebrate(false)} />
       </SafeAreaView>
     </DragContext.Provider>

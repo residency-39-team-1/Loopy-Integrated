@@ -1,5 +1,6 @@
 // src/screens/LoginScreen.tsx
 import React, { useState } from 'react';
+import LoadingOverlay from '../components/LoadingOverlay';
 import {
   View,
   Text,
@@ -10,7 +11,12 @@ import {
   SafeAreaView,
 } from 'react-native';
 import { useAuth } from '../contexts/AuthContext';
-import firestore from '@react-native-firebase/firestore';
+import {
+  getFirestore,
+  collection,
+  doc,
+  onSnapshot
+} from '@react-native-firebase/firestore';
 
 export default function LoginScreen() {
   const { signInWithGoogle, signInAsGuest, isLoading, error, user } = useAuth();
@@ -46,22 +52,20 @@ export default function LoginScreen() {
   /* ---------- Optional: listen to user doc ---------- */
   React.useEffect(() => {
     if (!user?.uid) return;
-    return firestore()
-      .collection('users')
-      .doc(user.uid)
-      .onSnapshot(
-        (doc) => doc.exists && setUserMetadata(doc.data()),
-        (err) => console.error('Failed to fetch user metadata:', err)
-      );
+    const db = getFirestore();
+    const userDoc = doc(collection(db, 'users'), user.uid);
+    const unsubscribe = onSnapshot(
+      userDoc,
+      (docSnap) => {
+        if (docSnap.exists) setUserMetadata(docSnap.data());
+      },
+      (err) => console.error('Failed to fetch user metadata:', err)
+    );
+    return unsubscribe;
   }, [user]);
 
   if (isLoading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" />
-        <Text style={styles.loadingText}>Loading...</Text>
-      </View>
-    );
+    return <LoadingOverlay visible={true} />;
   }
 
   return (

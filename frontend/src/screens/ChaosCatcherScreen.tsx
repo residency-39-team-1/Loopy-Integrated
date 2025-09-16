@@ -1,5 +1,6 @@
 // src/screens/ChaosCatcherScreen.tsx
 import React, { useState, useEffect, useCallback } from 'react';
+import LoadingOverlay from '../components/LoadingOverlay';
 import {
   View,
   Text,
@@ -268,8 +269,9 @@ export default function ChaosCatcherScreen({ navigation }: { navigation: any }) 
     );
   }
 
-  return (
-    <SafeAreaView style={styles.container}>
+    return (
+      <SafeAreaView style={styles.container}>
+    <LoadingOverlay visible={loading} />
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.title}>Chaos Catcher</Text>

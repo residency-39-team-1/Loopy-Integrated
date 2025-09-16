@@ -9,6 +9,7 @@ import {
   StyleSheet,
   Alert,
 } from 'react-native';
+import LoadingOverlay from '../components/LoadingOverlay';
 import { listTasks, updateTask, deleteTask, BackendTask } from '../services/api';
 
 type ArchivedTask = BackendTask;
@@ -150,6 +151,7 @@ export default function ArchiveScreen({ navigation }: { navigation: any }) {
       <View style={styles.content}>
         {isLoading ? (
           <View style={styles.centerContent}>
+            <LoadingOverlay visible={true} />
             <Text style={styles.loadingText}>Loading archived items...</Text>
           </View>
         ) : archivedItems.length === 0 ? (

@@ -6,9 +6,9 @@ import React, {
   useEffect,
   ReactNode,
 } from 'react';
-import auth, { FirebaseAuthTypes } from '@react-native-firebase/auth';
+import { getAuth, onAuthStateChanged, GoogleAuthProvider, FirebaseAuthTypes } from '@react-native-firebase/auth';
 import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
-import firestore from '@react-native-firebase/firestore';
+import { getFirestore, collection, doc, setDoc, serverTimestamp } from '@react-native-firebase/firestore';
 
 interface AuthContextType {
   user: FirebaseAuthTypes.User | null;
@@ -51,25 +51,22 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   // Firebase auth state listener
   useEffect(() => {
-    const unsubscribe = auth().onAuthStateChanged(async (firebaseUser) => {
+  const unsubscribe = onAuthStateChanged(getAuth(), async (firebaseUser) => {
       setUser(firebaseUser);
       if (firebaseUser) {
         // upsert user profile
-        await firestore()
-          .collection('users')
-          .doc(firebaseUser.uid)
-          .set(
-            {
-              uid: firebaseUser.uid,
-              email: firebaseUser.email,
-              displayName: firebaseUser.displayName,
-              photoURL: firebaseUser.photoURL,
-              isAnonymous: firebaseUser.isAnonymous,
-              lastSignIn: firestore.FieldValue.serverTimestamp(),
-            },
-            { merge: true }
-          )
-          .catch(console.error);
+        await setDoc(
+          doc(collection(getFirestore(), 'users'), firebaseUser.uid),
+          {
+            uid: firebaseUser.uid,
+            email: firebaseUser.email,
+            displayName: firebaseUser.displayName,
+            photoURL: firebaseUser.photoURL,
+            isAnonymous: firebaseUser.isAnonymous,
+            lastSignIn: serverTimestamp(),
+          },
+          { merge: true }
+        ).catch(console.error);
       }
       setIsLoading(false);
     });
@@ -79,21 +76,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // Keep user doc fresh on user changes
   useEffect(() => {
     if (!user) return;
-    firestore()
-      .collection('users')
-      .doc(user.uid)
-      .set(
-        {
-          uid: user.uid,
-          email: user.email,
-          displayName: user.displayName,
-          photoURL: user.photoURL,
-          isAnonymous: user.isAnonymous,
-          lastSignIn: firestore.FieldValue.serverTimestamp(),
-        },
-        { merge: true }
-      )
-      .catch(console.error);
+    setDoc(
+      doc(collection(getFirestore(), 'users'), user.uid),
+      {
+        uid: user.uid,
+        email: user.email,
+        displayName: user.displayName,
+        photoURL: user.photoURL,
+        isAnonymous: user.isAnonymous,
+        lastSignIn: serverTimestamp(),
+      },
+      { merge: true }
+    ).catch(console.error);
   }, [user]);
 
   // --- Public methods --------------------------------------------------------
@@ -110,8 +104,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const idToken = (result as any).idToken || (result as any).data?.idToken;
       if (!idToken) throw new Error('No ID token received');
 
-      const credential = auth.GoogleAuthProvider.credential(idToken);
-      await auth().signInWithCredential(credential);
+  const credential = GoogleAuthProvider.credential(idToken);
+  await getAuth().signInWithCredential(credential);
 
       console.log('✅ Google sign-in complete');
     } catch (err: any) {
@@ -129,7 +123,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       setError(null);
       setIsLoading(true);
-      await auth().signInAnonymously();
+  await getAuth().signInAnonymously();
     } catch (err: any) {
       setError(err?.message || 'Guest sign-in failed');
     } finally {
@@ -140,7 +134,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const signOut = async () => {
     try {
       setError(null);
-      const current = auth().currentUser;
+  const current = getAuth().currentUser;
       if (current && !current.isAnonymous) {
         try {
           await GoogleSignin.signOut();
@@ -148,7 +142,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           /* ignore */
         }
       }
-      await auth().signOut();
+  await getAuth().signOut();
     } catch (err: any) {
       setError(err?.message || 'Sign-out failed');
     }
