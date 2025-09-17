@@ -7,6 +7,11 @@ from flask_cors import CORS
 from backend.crud.tasks import register_task_routes
 from backend.crud.archived import register_archived_routes
 from backend.crud.users import register_user_routes
+from backend.crud.chaos_catcher import bp as chaos_bp
+from backend.crud.dopamine_logs import register_dopamine_logs_routes
+from backend.crud.dopamine_plant import dopamine_bp
+
+
 
 import firebase_admin
 from firebase_admin import credentials
@@ -16,7 +21,10 @@ def _init_firebase_admin():
         return
     gcred = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
     if gcred and os.path.exists(gcred):
-        firebase_admin.initialize_app()
+        # Explicitly specify project ID even with env var
+        firebase_admin.initialize_app(credentials.ApplicationDefault(), {
+            'projectId': 'loopy-productivity-app'
+        })
     else:
         sa_path = os.getenv("FIREBASE_SERVICE_ACCOUNT", "serviceAccount.json")
         if not os.path.exists(sa_path):
@@ -42,6 +50,10 @@ def health():
 register_task_routes(app)
 register_archived_routes(app)
 register_user_routes(app)
+app.register_blueprint(chaos_bp)
+register_dopamine_logs_routes(app)
+app.register_blueprint(dopamine_bp)
+
 
 if __name__ == "__main__":
     app.run(

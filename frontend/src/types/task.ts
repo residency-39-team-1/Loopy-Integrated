@@ -10,4 +10,5 @@ export interface Task {
   state: TaskState;
   createdAt?: number;
   updatedAt?: number;
+  isArchived?: boolean;
 }

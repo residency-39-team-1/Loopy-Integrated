@@ -6,7 +6,7 @@ from flask import Blueprint, request, jsonify, current_app, Response
 from firebase_admin import auth as fb_auth
 from backend.client import db, SERVER_TS  # type: ignore
 
-bp = Blueprint("dopamine", __name__)
+bp = Blueprint("dopamine_logs", __name__)
 COL = "dopamine_logs"
 USERS = "users"
 AUDIT_COL = "activity_logs"
@@ -16,6 +16,11 @@ ALLOWED_SOURCES = {
     "chaos_entry_created",
     "daily_session_review",
     "manual_reward",
+    "plant_task_completed",
+    "plant_phase_advanced",
+    "plant_init",
+    "plant_reset",
+    "plant_deleted",
 }
 
 # ---------- helpers ----------

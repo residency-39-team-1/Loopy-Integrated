@@ -105,8 +105,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
 
-      // ✅ Correct: idToken is returned directly (no `data` wrapper)
-      const { idToken } = await GoogleSignin.signIn();
+      // Handle both old and new Google Sign-In response formats
+      const result = await GoogleSignin.signIn();
+      const idToken = (result as any).idToken || (result as any).data?.idToken;
       if (!idToken) throw new Error('No ID token received');
 
       const credential = auth.GoogleAuthProvider.credential(idToken);
