@@ -10,6 +10,7 @@ import {
   TouchableWithoutFeedback,
 } from 'react-native';
 import { useAuth } from '../contexts/AuthContext';
+import PlantCard from '../components/PlantCard'; // <-- add
 
 export default function DashboardScreen({ navigation }: { navigation: any }) {
   const { user, signOut } = useAuth();
@@ -20,7 +21,7 @@ export default function DashboardScreen({ navigation }: { navigation: any }) {
       {/* Header with Loopy title and settings */}
       <View style={styles.header}>
         <Text style={styles.loopyTitle}>Loopy</Text>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.settingsButton}
           onPress={() => setSettingsVisible(true)}
         >
@@ -35,10 +36,9 @@ export default function DashboardScreen({ navigation }: { navigation: any }) {
         </Text>
       </View>
 
-      {/* Middle section - reserved for gamification */}
+      {/* Middle section - Dopamine Plant */}
       <View style={styles.middleSection}>
-        <Text style={styles.placeholder}>✨ Coming soon ✨</Text>
-        <Text style={styles.placeholderSubtext}>Your progress and achievements will appear here</Text>
+        <PlantCard />
       </View>
 
       {/* Bottom navigation dock */}
@@ -80,8 +80,8 @@ export default function DashboardScreen({ navigation }: { navigation: any }) {
             <TouchableWithoutFeedback onPress={() => {}}>
               <View style={styles.settingsModal}>
                 <Text style={styles.settingsTitle}>Settings</Text>
-                
-                <TouchableOpacity 
+
+                <TouchableOpacity
                   style={styles.settingsOption}
                   onPress={() => {
                     setSettingsVisible(false);
@@ -93,7 +93,7 @@ export default function DashboardScreen({ navigation }: { navigation: any }) {
                   <Text style={styles.settingsOptionSubtext}>View archived items</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={styles.settingsOption}
                   onPress={() => {
                     setSettingsVisible(false);
@@ -113,10 +113,7 @@ export default function DashboardScreen({ navigation }: { navigation: any }) {
 }
 
 const styles = StyleSheet.create({
-  container: { 
-    flex: 1, 
-    backgroundColor: '#fafbfc' 
-  },
+  container: { flex: 1, backgroundColor: '#fafbfc' },
 
   // Header
   header: {
@@ -140,39 +137,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  settingsIcon: {
-    fontSize: 20,
-  },
+  settingsIcon: { fontSize: 20 },
 
   // Greeting section
-  greetingSection: {
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-  },
-  greeting: {
-    fontSize: 18,
-    color: '#333',
-    fontWeight: '500',
-  },
+  greetingSection: { paddingHorizontal: 20, paddingVertical: 16 },
+  greeting: { fontSize: 18, color: '#333', fontWeight: '500' },
 
-  // Middle section for gamification
+  // Middle section
   middleSection: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 40,
-  },
-  placeholder: {
-    fontSize: 24,
-    color: '#9ca3af',
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  placeholderSubtext: {
-    fontSize: 16,
-    color: '#d1d5db',
-    textAlign: 'center',
-    lineHeight: 22,
+    paddingHorizontal: 20,
   },
 
   // Bottom dock navigation
@@ -195,22 +171,10 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 12,
   },
-  dockButtonActive: {
-    backgroundColor: '#f3f4f6',
-  },
-  dockIcon: {
-    fontSize: 24,
-    marginBottom: 4,
-  },
-  dockLabel: {
-    fontSize: 12,
-    color: '#6b7280',
-    fontWeight: '500',
-  },
-  dockLabelActive: {
-    color: '#374151',
-    fontWeight: '600',
-  },
+  dockButtonActive: { backgroundColor: '#f3f4f6' },
+  dockIcon: { fontSize: 24, marginBottom: 4 },
+  dockLabel: { fontSize: 12, color: '#6b7280', fontWeight: '500' },
+  dockLabelActive: { color: '#374151', fontWeight: '600' },
 
   // Settings modal
   modalBackdrop: {
@@ -241,21 +205,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#f3f4f6',
   },
-  settingsOptionIcon: {
-    fontSize: 20,
-    marginRight: 16,
-    width: 24,
-    textAlign: 'center',
-  },
-  settingsOptionText: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#374151',
-    flex: 1,
-  },
-  settingsOptionSubtext: {
-    fontSize: 12,
-    color: '#9ca3af',
-    fontStyle: 'italic',
-  },
+  settingsOptionIcon: { fontSize: 20, marginRight: 16, width: 24, textAlign: 'center' },
+  settingsOptionText: { fontSize: 16, fontWeight: '500', color: '#374151', flex: 1 },
+  settingsOptionSubtext: { fontSize: 12, color: '#9ca3af', fontStyle: 'italic' },
 });

@@ -8,6 +8,10 @@ from backend.crud.tasks import register_task_routes
 from backend.crud.archived import register_archived_routes
 from backend.crud.users import register_user_routes
 from backend.crud.chaos_catcher import bp as chaos_bp
+from backend.crud.dopamine_logs import register_dopamine_logs_routes
+from backend.crud.dopamine_plant import dopamine_bp
+
+
 
 import firebase_admin
 from firebase_admin import credentials
@@ -47,6 +51,9 @@ register_task_routes(app)
 register_archived_routes(app)
 register_user_routes(app)
 app.register_blueprint(chaos_bp)
+register_dopamine_logs_routes(app)
+app.register_blueprint(dopamine_bp)
+
 
 if __name__ == "__main__":
     app.run(

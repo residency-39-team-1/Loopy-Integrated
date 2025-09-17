@@ -2,33 +2,35 @@
 import auth from '@react-native-firebase/auth';
 
 const API_BASE =
-  process.env.EXPO_PUBLIC_API_BASE?.replace(/\/+$/, '') ||
-  'http://10.0.2.2:5001';
+  process.env.EXPO_PUBLIC_API_BASE?.replace(/\/+$/, '') || 'http://10.0.2.2:5001';
 
 async function getIdToken(): Promise<string> {
   const user = auth().currentUser;
   if (!user) throw new Error('Not authenticated');
-  
+
   // Expo 53 fix: Use getIdTokenResult instead of getIdToken
   const result = await user.getIdTokenResult(true);
   return result.token;
 }
 
-async function apiFetch(path: string, options: RequestInit = {}) {
+export async function apiFetch(path: string, options: RequestInit = {}) {
   const token = await getIdToken();
   const headers = {
     'Content-Type': 'application/json',
     Authorization: `Bearer ${token}`,
     ...(options.headers || {}),
   };
+
   const res = await fetch(`${API_BASE}${path}`, { ...options, headers });
   const text = await res.text();
+
   let json: any;
   try {
     json = text ? JSON.parse(text) : null;
   } catch {
     json = { raw: text };
   }
+
   if (!res.ok) {
     const msg = (json && (json.error || json.message)) || res.statusText;
     throw new Error(`${res.status} ${msg}`);
@@ -85,7 +87,9 @@ export async function createTask(body: {
 
 export async function updateTask(
   id: string,
-  updates: Partial<Pick<BackendTask, 'title' | 'state' | 'notes' | 'priority' | 'dueDate' | 'isArchived'>>
+  updates: Partial<
+    Pick<BackendTask, 'title' | 'state' | 'notes' | 'priority' | 'dueDate' | 'isArchived'>
+  >
 ): Promise<BackendTask> {
   return apiFetch(`/tasks/${id}`, {
     method: 'PATCH',

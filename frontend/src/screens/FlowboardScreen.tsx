@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef, useCallback, useContext, useEffect } from 'react';
+import React, { useState, useMemo, useRef, useCallback, useEffect } from 'react';
 import { SafeAreaView, View, Text, Alert, FlatList, TouchableOpacity, Platform } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { useTasks } from '../contexts/TaskContext';
@@ -17,6 +17,11 @@ import {
   DragContext,
 } from './FlowboardComponents';
 import styles from './FlowboardScreen.styles';
+
+// dopamine API + Plant context
+import { notifyTaskComplete, getPlantState } from '../api/dopamine';
+import { usePlant } from '../contexts/PlantContext';
+import { useAuth } from '../contexts/AuthContext';
 
 /* ------------------------------------------------------------------ */
 /* Column colours helper                                              */
@@ -67,14 +72,16 @@ type UITask = {
 /* ------------------------------------------------------------------ */
 export default function FlowboardScreen({ navigation }: { navigation: any }) {
   const { tasks: contextTasks, isLoading, error, refresh } = useTasks();
-  
-  // Refresh tasks when screen comes into focus (e.g., returning from archive)
+  const { setPlant } = usePlant(); // publish latest plant state after completions
+  const { user } = useAuth();
+
+  // Refresh tasks when screen comes into focus
   useFocusEffect(
     useCallback(() => {
       refresh();
     }, [refresh])
   );
-  
+
   const [optimisticTasks, setOptimisticTasks] = useState<UITask[]>([]);
   const [celebrate, setCelebrate] = useState(false);
   const [overlayTask, setOverlayTask] = useState<UITask | null>(null);
@@ -235,11 +242,29 @@ export default function FlowboardScreen({ navigation }: { navigation: any }) {
       pendingMoves.add(key);
 
       setOptimisticTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, state: target } : t)));
+
       try {
+        // 1) Persist task state
         await updateTask(taskId, { state: toBackendState(target) });
         await haptic('light');
-        if (target === 'Complete') setCelebrate(true);
+
+        // 2) If moved to Complete, notify plant + refresh context
+        if (target === 'Complete' && user?.uid) {
+          try {
+            const resp = await notifyTaskComplete(user.uid, taskId, 1);
+            if (resp?.plant) {
+              setPlant(resp.plant);
+            } else {
+              const latest = await getPlantState(user.uid);
+              setPlant(latest.plant);
+            }
+          } catch (err: any) {
+            console.log('dopamine update error:', err?.message || err);
+          }
+          setCelebrate(true);
+        }
       } catch (e: any) {
+        // rollback on error
         setOptimisticTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, state: originalTask.state } : t)));
         await haptic('error');
         Alert.alert('Move failed', String(e?.message ?? e));
@@ -247,7 +272,7 @@ export default function FlowboardScreen({ navigation }: { navigation: any }) {
         pendingMoves.delete(key);
       }
     },
-    [tasks, pendingMoves]
+    [tasks, pendingMoves, user?.uid, setPlant]
   );
 
   /* ---------- add task ---------- */
@@ -316,10 +341,8 @@ export default function FlowboardScreen({ navigation }: { navigation: any }) {
         onPress: async () => {
           try {
             setOptimisticTasks((prev) => prev.filter((t) => t.id !== task.id));
-            
             // Archive by setting isArchived flag instead of deleting
             await updateTask(task.id, { isArchived: true });
-            
             setOverlayTask(null);
             await haptic('light');
           } catch (e: any) {
@@ -339,6 +362,17 @@ export default function FlowboardScreen({ navigation }: { navigation: any }) {
       setBulkLoading(true);
       setOptimisticTasks((prev) => prev.map((t) => (toMove.find((m) => m.id === t.id) ? { ...t, state: toState } : t)));
       await Promise.all(toMove.map((t) => updateTask(t.id, { state: toBackendState(toState) })));
+
+      // If moving to Complete in bulk, notify plant once
+      if (toState === 'Complete' && user?.uid) {
+        try {
+          const resp = await notifyTaskComplete(user.uid);
+          if (resp?.plant) setPlant(resp.plant);
+        } catch (e) {
+          // non-fatal
+        }
+      }
+
       await refresh();
       await haptic('medium');
       if (toState === 'Complete') setCelebrate(true);
@@ -349,6 +383,7 @@ export default function FlowboardScreen({ navigation }: { navigation: any }) {
       setBulkLoading(false);
     }
   };
+
   const archiveAllComplete = async () => {
     const toArchive = byColumn.Complete;
     if (!toArchive.length) return;
@@ -363,12 +398,8 @@ export default function FlowboardScreen({ navigation }: { navigation: any }) {
             try {
               setBulkLoading(true);
               setOptimisticTasks((prev) => prev.filter((t) => !toArchive.find((a) => a.id === t.id)));
-              
               // Archive by setting isArchived flag instead of deleting
-              await Promise.all(toArchive.map(task => 
-                updateTask(task.id, { isArchived: true })
-              ));
-              
+              await Promise.all(toArchive.map(task => updateTask(task.id, { isArchived: true })));
               await refresh();
               await haptic('medium');
             } catch (error: any) {
@@ -382,6 +413,7 @@ export default function FlowboardScreen({ navigation }: { navigation: any }) {
       ]
     );
   };
+
   const handleRestart = async () => {
     Alert.alert(
       'Restart Workflow',
@@ -456,7 +488,7 @@ export default function FlowboardScreen({ navigation }: { navigation: any }) {
           onScroll={handleScroll}
           onContentSizeChange={handleContentSizeChange}
           scrollEventThrottle={16}
-          scrollEnabled={!draggingTaskId} // Disable main scroll when dragging
+          scrollEnabled={!draggingTaskId}
           renderItem={({ item }) => (
             <Column
               state={item.key}
@@ -468,7 +500,7 @@ export default function FlowboardScreen({ navigation }: { navigation: any }) {
               <FlatList
                 data={item.tasks}
                 keyExtractor={(t) => t.id}
-                scrollEnabled={!draggingTaskId} // Disable scrolling when dragging
+                scrollEnabled={!draggingTaskId}
                 showsVerticalScrollIndicator={false}
                 renderItem={({ item: task }) => (
                   <View style={styles.taskRow}>
@@ -479,7 +511,7 @@ export default function FlowboardScreen({ navigation }: { navigation: any }) {
                     <TouchableOpacity
                       style={styles.sandwichMenu}
                       onPress={() => setOverlayTask(task)}
-                      disabled={!!draggingTaskId} // Disable menu when dragging
+                      disabled={!!draggingTaskId}
                     >
                       <Text style={styles.sandwichMenuIcon}>☰</Text>
                     </TouchableOpacity>
@@ -525,5 +557,3 @@ export default function FlowboardScreen({ navigation }: { navigation: any }) {
     </DragContext.Provider>
   );
 }
-
-/* ------------------------------------------------------------------ */
