@@ -4,7 +4,6 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useTasks } from '../contexts/TaskContext';
 import { createTask, updateTask, deleteTask, type BackendTask } from '../services/api';
 import * as ArchiveService from '../services/archive';
-import LoadingOverlay from '../components/LoadingOverlay';
 import Celebration from '../components/Celebration';
 import { type TaskState } from '../types/task';
 import {
@@ -551,7 +550,6 @@ export default function FlowboardScreen({ navigation }: { navigation: any }) {
           saving={saving}
         />
 
-        <LoadingOverlay visible={isLoading || saving || bulkLoading} />
         <Celebration visible={celebrate} onDone={() => setCelebrate(false)} />
       </SafeAreaView>
     </DragContext.Provider>

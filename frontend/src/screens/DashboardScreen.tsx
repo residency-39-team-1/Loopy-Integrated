@@ -41,16 +41,8 @@ export default function DashboardScreen({ navigation }: { navigation: any }) {
         <PlantCard />
       </View>
 
-      {/* Bottom navigation dock */}
+      {/* Bottom navigation dock (no Tasks) */}
       <View style={styles.bottomDock}>
-        <TouchableOpacity
-          style={styles.dockButton}
-          onPress={() => navigation.navigate('TaskList')}
-        >
-          <Text style={styles.dockIcon}>📝</Text>
-          <Text style={styles.dockLabel}>Tasks</Text>
-        </TouchableOpacity>
-
         <TouchableOpacity
           style={styles.dockButton}
           onPress={() => navigation.navigate('Flowboard')}
