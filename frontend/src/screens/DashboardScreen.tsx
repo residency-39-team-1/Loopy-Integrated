@@ -10,7 +10,7 @@ import {
   TouchableWithoutFeedback,
 } from 'react-native';
 import { useAuth } from '../contexts/AuthContext';
-import PlantCard from '../components/PlantCard'; // <-- add
+import PlantCard from '../components/PlantCard';
 
 export default function DashboardScreen({ navigation }: { navigation: any }) {
   const { user, signOut } = useAuth();
@@ -44,20 +44,15 @@ export default function DashboardScreen({ navigation }: { navigation: any }) {
       {/* Bottom navigation dock */}
       <View style={styles.bottomDock}>
         <TouchableOpacity
-<<<<<<< HEAD
-          style={[styles.tile, styles.primary]}
+          style={styles.dockButton}
           onPress={() => navigation.navigate('TaskList')}
         >
-          <Text style={styles.emoji}>📝</Text>
-          <Text style={styles.tileText}>Tasks</Text>
+          <Text style={styles.dockIcon}>📝</Text>
+          <Text style={styles.dockLabel}>Tasks</Text>
         </TouchableOpacity>
 
-        {/* Flowboard button */}
         <TouchableOpacity
-          style={[styles.tile, styles.secondary]}
-=======
           style={styles.dockButton}
->>>>>>> main
           onPress={() => navigation.navigate('Flowboard')}
         >
           <Text style={styles.dockIcon}>🎯</Text>
@@ -66,7 +61,7 @@ export default function DashboardScreen({ navigation }: { navigation: any }) {
 
         <TouchableOpacity
           style={[styles.dockButton, styles.dockButtonActive]}
-          onPress={() => {}} // Already on dashboard
+          onPress={() => {}}
         >
           <Text style={styles.dockIcon}>🏠</Text>
           <Text style={[styles.dockLabel, styles.dockLabelActive]}>Dashboard</Text>
