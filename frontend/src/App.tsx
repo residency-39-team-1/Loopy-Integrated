@@ -10,7 +10,7 @@ import { ActivityIndicator, View, StyleSheet } from 'react-native';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { TaskProvider } from './contexts/TaskContext';
 import { PlantProvider, usePlant } from './contexts/PlantContext';
-import { getPlantState } from './api/dopamine';
+import { getPlantState } from './services/plant';
 
 import DashboardScreen from './screens/DashboardScreen';
 import LoginScreen from './screens/LoginScreen';

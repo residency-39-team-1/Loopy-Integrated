@@ -5,11 +5,9 @@ import type {
   TaskService as ITaskService,
   CreateTaskInput,
   UpdateTaskInput,
-} from './TaskService.types';
-import { completePlantTask } from './plant';
+} from './TaskService.types'; // <-- or adjust to your actual path; see note below
 
-const API_BASE =
-  process.env.EXPO_PUBLIC_API_BASE?.replace(/\/+$/, '') || 'http://192.168.1.219:5001';
+const API_BASE = process.env.EXPO_PUBLIC_API_BASE?.replace(/\/+$/, '') || 'http://192.168.1.219:5001';
 
 async function getToken(): Promise<string> {
   const user = auth().currentUser;
@@ -23,7 +21,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     ...init,
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
+      'Authorization': `Bearer ${token}`,
       ...(init?.headers || {}),
     },
   });
@@ -39,11 +37,12 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 function toApiCreate(input: CreateTaskInput) {
+  // Backend derives userId from token. We just forward the fields it accepts.
   return {
     title: input.title,
     notes: input.notes ?? null,
     priority: input.priority ?? null,
-    dueDate: input.dueDate ?? null,
+    dueDate: input.dueDate ?? null, // number (epoch ms) is fine; backend stores as provided
     state: input.state ?? 'Exploring',
   };
 }
@@ -59,6 +58,7 @@ function toApiUpdate(input: UpdateTaskInput) {
 }
 
 export const TaskServiceHttp: ITaskService = {
+  // The backend uses the auth token to scope by user; userId param is ignored here but kept to satisfy the interface.
   async list(_userId: string): Promise<Task[]> {
     return request<Task[]>(`/tasks?orderBy=createdAt&limit=50`);
   },
@@ -82,21 +82,10 @@ export const TaskServiceHttp: ITaskService = {
 
   async update(id: string, input: UpdateTaskInput): Promise<Task> {
     const body = toApiUpdate(input);
-
-    const updatedTask = await request<Task>(`/tasks/${id}`, {
+    return request<Task>(`/tasks/${id}`, {
       method: 'PATCH',
       body: JSON.stringify(body),
     });
-
-    if (body.state === 'Done') {
-      try {
-        await completePlantTask(id);
-      } catch (err) {
-        console.warn('Failed to record plant growth:', err);
-      }
-    }
-
-    return updatedTask;
   },
 
   async remove(id: string): Promise<void> {

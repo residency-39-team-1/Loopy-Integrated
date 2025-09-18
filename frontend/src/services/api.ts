@@ -1,38 +1,66 @@
 // src/services/api.ts
 import auth from '@react-native-firebase/auth';
+import { Platform } from 'react-native';
 
-const API_BASE =
-  process.env.EXPO_PUBLIC_API_BASE?.replace(/\/+$/, '') || 'http://10.0.2.2:5001';
+// Determine API base URL based on platform
+const getApiBase = () => {
+  const envBase = process.env.EXPO_PUBLIC_API_BASE;
+  
+  if (envBase) {
+    return envBase.replace(/\/+$/, '');
+  }
+  
+  // Default fallbacks based on platform
+  if (Platform.OS === 'web') {
+    return 'http://127.0.0.1:5001';
+  } else if (Platform.OS === 'android') {
+    // For Android emulator use 10.0.2.2
+    // For physical device, this should be your PC's IP
+    return 'http://10.0.2.2:5001';
+  } else {
+    // iOS simulator can use localhost
+    return 'http://127.0.0.1:5001';
+  }
+};
+
+const API_BASE = getApiBase();
 
 async function getIdToken(): Promise<string> {
   const user = auth().currentUser;
   if (!user) throw new Error('Not authenticated');
-
-  // Expo 53 fix: Use getIdTokenResult instead of getIdToken
-  const result = await user.getIdTokenResult(true);
-  return result.token;
+  const token = await user.getIdToken(); // Remove forceRefresh to use cached token
+  console.log('🔐 Token obtained for user:', user.email || user.uid);
+  console.log('📍 API_BASE:', API_BASE);
+  return token;
 }
 
-export async function apiFetch(path: string, options: RequestInit = {}) {
+async function apiFetch(path: string, options: RequestInit = {}) {
   const token = await getIdToken();
   const headers = {
     'Content-Type': 'application/json',
     Authorization: `Bearer ${token}`,
     ...(options.headers || {}),
   };
-
-  const res = await fetch(`${API_BASE}${path}`, { ...options, headers });
+  
+  const fullUrl = `${API_BASE}${path}`;
+  console.log('🌐 Fetching:', fullUrl);
+  
+  const res = await fetch(fullUrl, { ...options, headers });
   const text = await res.text();
-
   let json: any;
   try {
     json = text ? JSON.parse(text) : null;
   } catch {
     json = { raw: text };
   }
-
   if (!res.ok) {
     const msg = (json && (json.error || json.message)) || res.statusText;
+    console.error('❌ API Error:', {
+      status: res.status,
+      message: msg,
+      url: fullUrl,
+      response: json
+    });
     throw new Error(`${res.status} ${msg}`);
   }
   return json;
@@ -49,7 +77,6 @@ export type BackendTask = {
   state: 'Exploring' | 'Planning' | 'Doing' | 'Done';
   createdAt?: any;
   updatedAt?: any;
-  isArchived: boolean;
 };
 
 // ---- Tasks API ----
@@ -87,9 +114,7 @@ export async function createTask(body: {
 
 export async function updateTask(
   id: string,
-  updates: Partial<
-    Pick<BackendTask, 'title' | 'state' | 'notes' | 'priority' | 'dueDate' | 'isArchived'>
-  >
+  updates: Partial<Pick<BackendTask, 'title' | 'state' | 'notes' | 'priority' | 'dueDate'>>
 ): Promise<BackendTask> {
   return apiFetch(`/tasks/${id}`, {
     method: 'PATCH',
